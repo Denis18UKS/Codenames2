@@ -1,6 +1,7 @@
 package fable.codenames.role;
 
 public enum PlayerRole {
+
     LIDER("lider"),
     GUESSING("guessing");
 
@@ -15,6 +16,8 @@ public enum PlayerRole {
     }
 
     public static PlayerRole fromId(String id) {
+        if (id == null) return null;
+
         for (PlayerRole role : values()) {
             if (role.id.equalsIgnoreCase(id)) {
                 return role;
