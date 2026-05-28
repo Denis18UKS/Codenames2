@@ -664,6 +664,7 @@ public final class CodenamesGameService {
 
         restoreRoundBlocks(server);
         Boards.getState(server).repairCellsFromFields();
+        Roles.clearAll(server);
         CodenamesGames.getState(server).stop();
         clearMissingPlayersPause();
         BoardSelectionState.clearAll();
