@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "codenames:block/my_block"
+    }
+  }
+}

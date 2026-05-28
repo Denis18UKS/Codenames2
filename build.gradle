@@ -1,0 +1,139 @@
+plugins {
+	id 'fabric-loom' version '1.6.12'
+	id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+def parseLocalPlayer = { String propertyName ->
+	def raw = providers.gradleProperty(propertyName).orElse("").get().trim()
+	if (raw.isEmpty()) {
+		return null
+	}
+
+	def parts = raw.split(",", 2).collect { it.trim() }
+	if (parts[0].isEmpty()) {
+		throw new GradleException("${propertyName} must use format: username or username, uuid")
+	}
+	return [username: parts[0], uuid: parts.size() > 1 ? parts[1] : ""]
+}
+
+def localPlayerIndex = providers.gradleProperty("local_player_index").orElse("1").get().trim()
+def localPlayer = parseLocalPlayer("local_player_${localPlayerIndex}")
+def modrinthModsDirs = [
+	file("C:/Users/honor/AppData/Roaming/ModrinthApp/profiles/codename 1.0.0/mods"),
+	file("C:/Users/honor/AppData/Roaming/ModrinthApp/profiles/codename (2)/mods")
+]
+
+repositories {
+	maven {
+		name = "Geckolib"
+		url = "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/"
+	}
+	maven {
+		name = "Modrinth"
+		url = "https://api.modrinth.com/maven"
+	}
+	mavenCentral()
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+	mods {
+		"codenames" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+
+	runs {
+		client {
+			runDir "run/player_${localPlayerIndex}"
+			if (localPlayer != null) {
+				programArgs "--username", localPlayer.username
+				if (!localPlayer.uuid.isEmpty()) {
+					programArgs "--uuid", localPlayer.uuid
+				}
+			}
+		}
+	}
+
+}
+
+fabricApi {
+	configureDataGeneration() {
+		createSourceSet = true
+		modId = "codenames_datagen"
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+	modImplementation "software.bernie.geckolib:geckolib-fabric-1.20.1:4.4.4"
+	modRuntimeOnly "maven.modrinth:forge-config-api-port:v8.0.3-1.20.1-Fabric"
+}
+
+processResources {
+	inputs.property "version", project.version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": project.version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 17
+}
+
+java {
+	withSourcesJar()
+
+	sourceCompatibility = JavaVersion.VERSION_17
+	targetCompatibility = JavaVersion.VERSION_17
+}
+
+jar {
+	from("LICENSE") {
+		rename { "${it}_${project.base.archivesName.get()}"}
+	}
+}
+
+tasks.register("copyRemappedJarToModrinth", Copy) {
+	dependsOn tasks.named("remapJar")
+	from(tasks.named("remapJar").flatMap { it.archiveFile })
+	into(layout.buildDirectory.dir("modrinth-copy"))
+	doLast {
+		modrinthModsDirs.each { targetDir ->
+			copy {
+				from(tasks.named("remapJar").flatMap { it.archiveFile })
+				into(targetDir)
+			}
+		}
+	}
+}
+
+tasks.named("build") {
+	finalizedBy(tasks.named("copyRemappedJarToModrinth"))
+}
+
+publishing {
+	publications {
+		mavenJava(MavenPublication) {
+			from components.java
+		}
+	}
+
+	repositories {
+		/* Unused */
+	}
+}

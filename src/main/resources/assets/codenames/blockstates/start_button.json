@@ -1,0 +1,9 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "codenames:block/click_button"
+      }
+    }
+  ]
+}

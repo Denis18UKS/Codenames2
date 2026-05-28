@@ -1,0 +1,34 @@
+{
+  "variants": {
+    "facing=north,wall=false": {
+      "model": "codenames:block/pirate"
+    },
+    "facing=east,wall=false": {
+      "model": "codenames:block/pirate",
+      "y": 90
+    },
+    "facing=south,wall=false": {
+      "model": "codenames:block/pirate",
+      "y": 180
+    },
+    "facing=west,wall=false": {
+      "model": "codenames:block/pirate",
+      "y": 270
+    },
+    "facing=north,wall=true": {
+      "model": "codenames:block/pirate_wall"
+    },
+    "facing=east,wall=true": {
+      "model": "codenames:block/pirate_wall",
+      "y": 90
+    },
+    "facing=south,wall=true": {
+      "model": "codenames:block/pirate_wall",
+      "y": 180
+    },
+    "facing=west,wall=true": {
+      "model": "codenames:block/pirate_wall",
+      "y": 270
+    }
+  }
+}

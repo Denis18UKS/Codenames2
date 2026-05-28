@@ -1,0 +1,34 @@
+{
+  "variants": {
+    "facing=north,wall=false": {
+      "model": "codenames:block/villager"
+    },
+    "facing=east,wall=false": {
+      "model": "codenames:block/villager",
+      "y": 90
+    },
+    "facing=south,wall=false": {
+      "model": "codenames:block/villager",
+      "y": 180
+    },
+    "facing=west,wall=false": {
+      "model": "codenames:block/villager",
+      "y": 270
+    },
+    "facing=north,wall=true": {
+      "model": "codenames:block/villager_wall"
+    },
+    "facing=east,wall=true": {
+      "model": "codenames:block/villager_wall",
+      "y": 90
+    },
+    "facing=south,wall=true": {
+      "model": "codenames:block/villager_wall",
+      "y": 180
+    },
+    "facing=west,wall=true": {
+      "model": "codenames:block/villager_wall",
+      "y": 270
+    }
+  }
+}

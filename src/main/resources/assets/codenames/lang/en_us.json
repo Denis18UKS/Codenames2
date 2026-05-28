@@ -1,0 +1,21 @@
+{
+  "group.codenames.item_group": "Codenames",
+  "item.codenames.osporit": "Dispute",
+  "item.codenames.osporit.tooltip": "Hold and right-click to dispute the clue",
+  "item.codenames.hologram_projector": "Hologram Projector",
+  "item.codenames.board_configurator": "Board Configurator",
+  "item.codenames.pedestal_configurator": "Pedestal Configurator",
+  "item.codenames.teleport_configurator": "Teleport Configurator",
+  "item.codenames.team_chat_configurator": "Team Chat Configurator",
+  "item.codenames.team_chat_text_configurator": "Team Chat Text Configurator",
+  "block.codenames.team_chat": "Team Chat",
+  "block.codenames.click_button": "Reset Button",
+  "block.codenames.start_button": "Reset Button",
+  "entity.codenames.crown": "Crown",
+  "entity.codenames.hologram_projector": "Hologram Projector",
+  "item.codenames.crown_spawn_egg": "Crown Spawn Egg",
+  "category.codenames": "Codenames",
+  "key.codenames.open_team_chat": "Open Team Chat",
+  "key.codenames.apply_team_chat_config": "Apply Team Chat Banner Config",
+  "key.codenames.toggle_vanilla_chat": "Hide/Show Vanilla Chat"
+}

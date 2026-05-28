@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "codenames:block/team_chat"
+    },
+    "facing=east": {
+      "model": "codenames:block/team_chat",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "codenames:block/team_chat",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "codenames:block/team_chat",
+      "y": 270
+    }
+  }
+}

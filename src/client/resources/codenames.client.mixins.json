@@ -1,0 +1,19 @@
+{
+	"required": true,
+	"package": "fable.codenames.client.mixin",
+	"compatibilityLevel": "JAVA_17",
+	"client": [
+		"ChatScreenMixin",
+		"ChatHudMixin",
+		"ClientPlayerEntityMixin",
+		"ClientPlayerInteractionManagerMixin",
+		"InGameHudMixin",
+		"MinecraftClientMixin",
+		"ScreenMixin",
+		"GameOptionsMixin",
+		"WrittenBookModelMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}
