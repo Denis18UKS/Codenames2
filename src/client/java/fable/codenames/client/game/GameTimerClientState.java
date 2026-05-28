@@ -14,15 +14,14 @@ public final class GameTimerClientState {
     private static long syncMillis;
     private static boolean canPassTurn;
 
-    private GameTimerClientState() {
-    }
+    private GameTimerClientState() {}
 
     public static void update(boolean active,
-            String teamName,
-            CodenamesPhase phase,
-            long remainingTicks,
-            long totalTicks,
-            boolean canPassTurn) {
+                              String teamName,
+                              CodenamesPhase phase,
+                              long remainingTicks,
+                              long totalTicks,
+                              boolean canPassTurn) {
 
         GameTimerClientState.active = active;
         GameTimerClientState.teamName = teamName == null ? "" : teamName;
@@ -33,6 +32,7 @@ public final class GameTimerClientState {
 
         GameTimerClientState.canPassTurn = canPassTurn;
 
+        // 🔥 КЛЮЧ: фикс времени синхронизации
         GameTimerClientState.syncMillis = System.currentTimeMillis();
     }
 
@@ -49,17 +49,25 @@ public final class GameTimerClientState {
     }
 
     public static boolean isActive() {
-        return active && totalTicks > 0L;
+        // 🔥 FIX: теперь только active
+        return active;
     }
 
     public static long getRemainingTicks() {
 
-        if (!active || totalTicks <= 0L || syncMillis <= 0L) {
+        // ❗ ЕСЛИ ТАЙМЕР НЕ АКТИВЕН — НЕ УМЕНЬШАЕМ
+        if (!active) {
+            return remainingTicks;
+        }
+
+        if (totalTicks <= 0L || syncMillis <= 0L) {
             return 0L;
         }
 
         long elapsed = (System.currentTimeMillis() - syncMillis) / 50L;
-        return Math.max(0L, remainingTicks - elapsed);
+        long value = remainingTicks - elapsed;
+
+        return Math.max(0L, value);
     }
 
     public static String getTeamName() {
