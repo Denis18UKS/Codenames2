@@ -223,7 +223,8 @@ public final class CodenamesGameService {
         }
 
         state.setClue(clue.word(), clue.count());
-        long guessingDuration = state.isGuessingTimerUnlocked() ? GUESSING_TICKS : 0L;
+        // long guessingDuration = state.isGuessingTimerUnlocked() ? GUESSING_TICKS : 0L;
+        long guessingDuration = GUESSING_TICKS;
         state.setPhase(CodenamesPhase.GUESSING, team, server.getOverworld().getTime(), guessingDuration);
         state.unlockGuessingTimer();
         GameTimerSync.syncToAll(server);
@@ -761,35 +762,22 @@ public final class CodenamesGameService {
         }
     }
 
-    private static void syncVanillaTimerBar(
-            MinecraftServer server,
-            CodenamesGameState state,
-            long now) {
-
+    private static void syncVanillaTimerBar(MinecraftServer server, CodenamesGameState state, long now) {
         float totalTicks = switch (state.getPhase()) {
-
             case WAITING_CLUE -> CLUE_TICKS;
-
             case GUESSING -> GUESSING_TICKS;
-
             default -> 0L;
         };
 
         float progress = 0.0F;
 
         if (totalTicks > 0L && state.getPhaseEndTick() > now) {
-
-            progress = Math.max(
-                    0.0F,
-                    Math.min(
-                            1.0F,
-                            (float) (state.getPhaseEndTick() - now) / totalTicks));
+            progress = Math.max(0.0F, Math.min(1.0F, (float) (state.getPhaseEndTick() - now) / totalTicks));
         }
 
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
 
             boolean visible = false;
-
             String teamName = TeamService.getTeamName(player);
 
             if (teamName != null
@@ -799,30 +787,20 @@ public final class CodenamesGameService {
                         .getRole(player.getUuid());
 
                 if (state.getPhase() == CodenamesPhase.WAITING_CLUE) {
-
                     visible = role == PlayerRole.LIDER;
                 }
 
                 if (state.getPhase() == CodenamesPhase.GUESSING) {
-
                     visible = role == PlayerRole.GUESSING;
                 }
             }
 
-            // =====================================================
-            // ВАЖНО
-            // =====================================================
-
             if (!visible) {
-
+                player.networkHandler.sendPacket(new ExperienceBarUpdateS2CPacket(0.0F, 0, 0));
                 continue;
             }
 
-            player.networkHandler.sendPacket(
-                    new ExperienceBarUpdateS2CPacket(
-                            progress,
-                            0,
-                            0));
+            player.networkHandler.sendPacket(new ExperienceBarUpdateS2CPacket(progress, 0, 0));
         }
     }
 
