@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "scholar:item/blue_written_book"
+    "layer0": "scholar:item/cyan_written_book"
   }
 }

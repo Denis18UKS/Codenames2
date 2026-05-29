@@ -15,13 +15,13 @@ import net.minecraft.util.Identifier;
 
 public final class RuleBookStacks {
 
-    private static final Identifier LIGHT_SCHOLAR_BOOK_ID = new Identifier("scholar", "cyan_written_book");
-    private static final Identifier DARK_SCHOLAR_BOOK_ID = new Identifier("scholar", "blue_written_book");
+    private static final Identifier LIGHT_SCHOLAR_BOOK_ID = new Identifier("scholar", "light_blue_written_book");
+    private static final Identifier DARK_SCHOLAR_BOOK_ID = new Identifier("scholar", "cyan_written_book");
     private static final String BOOK_KEY = "CodenamesRuleBook";
     private static final String AUTHOR = "Fable Unity";
 
-    private static final String BLUE = "#42aaff";  // light blue
-    private static final String CYAN = "#7ee8e8";  // cyan
+    private static final String BLUE = "#42aaff";  // light blue ✅
+    private static final String CYAN = "#7ee8e8";  // cyan ✅
     private static final String RED = "#ff3030";
     private static final String DARK_RED = "#aa0000";
     private static final String GOLD = "#ffd35a";
@@ -52,8 +52,8 @@ public final class RuleBookStacks {
         ItemStack stack = new ItemStack(selectBookItemByTitle(title));
 
         TextColor nameColor = switch (type) {
-            case "short" -> TextColor.parse(BLUE);
-            case "full"  -> TextColor.parse(CYAN);
+            case "short" -> TextColor.parse(CYAN);
+            case "full"  -> TextColor.parse(BLUE);
             default      -> TextColor.fromRgb(0xFFFFFF);
         };
 
