@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "codenames:item/written_book_aqua"
+    "layer0": "scholar:item/cyan_written_book"
   }
 }

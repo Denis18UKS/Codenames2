@@ -10,6 +10,7 @@ import net.minecraft.registry.Registries;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.text.TextColor;
 import net.minecraft.util.Identifier;
 
 public final class RuleBookStacks {
@@ -19,12 +20,12 @@ public final class RuleBookStacks {
     private static final String BOOK_KEY = "CodenamesRuleBook";
     private static final String AUTHOR = "Fable Unity";
 
-    private static final String BLUE = "#42aaff";
-    private static final String CYAN = "#7ee8e8";
+    private static final String BLUE = "#42aaff";  // light blue
+    private static final String CYAN = "#7ee8e8";  // cyan
     private static final String RED = "#ff3030";
     private static final String DARK_RED = "#aa0000";
     private static final String GOLD = "#ffd35a";
-    private static final String ACCENT = "#8a684c";
+    private static final String ACCENT = "#5a422f";
 
     private RuleBookStacks() {
     }
@@ -50,9 +51,18 @@ public final class RuleBookStacks {
     private static ItemStack create(String type, String title, String author, String[] pages) {
         ItemStack stack = new ItemStack(selectBookItemByTitle(title));
 
-        stack.setCustomName(Text.literal(title)
-                .formatted(Formatting.YELLOW)
-                .setStyle(Style.EMPTY.withItalic(false)));
+        TextColor nameColor = switch (type) {
+            case "short" -> TextColor.parse(BLUE);
+            case "full"  -> TextColor.parse(CYAN);
+            default      -> TextColor.fromRgb(0xFFFFFF);
+        };
+
+        stack.setCustomName(
+                Text.literal(title)
+                        .setStyle(Style.EMPTY
+                                .withColor(nameColor)
+                                .withItalic(false))
+        );
 
         NbtCompound nbt = stack.getOrCreateNbt();
         nbt.putString(BOOK_KEY, type);
