@@ -1,5 +1,6 @@
 package fable.codenames.client.chat;
 
+import fable.codenames.block.TeamChatBlock;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -25,9 +26,6 @@ public final class ChatHoverHintRenderer {
                 && !TeamChatClientState.hasActiveBannerInput()
                 && isLookingAtTeamChat(client);
 
-        // =========================
-        // FADE
-        // =========================
         if (hovering)
             hoverProgress += SPEED;
         else
@@ -37,9 +35,7 @@ public final class ChatHoverHintRenderer {
 
         if (hoverProgress <= 0.01f)
             return;
-
-        int alpha = (int) (hoverProgress * 180); // 180 = более “ванильная” плотность
-
+        int alpha = (int) (hoverProgress * 180);
         String message = "Нажмите ПКМ, чтобы писать в командный чат";
 
         int textWidth = client.textRenderer.getWidth(message);
@@ -57,9 +53,6 @@ public final class ChatHoverHintRenderer {
         int x = (screenW - boxWidth) / 2;
         int y = screenH - 60;
 
-        // =========================
-        // BACKGROUND (плашка)
-        // =========================
         int bgColor = (alpha << 24) | 0x000000;
 
         context.fill(
@@ -69,9 +62,6 @@ public final class ChatHoverHintRenderer {
                 y + boxHeight,
                 bgColor);
 
-        // =========================
-        // TEXT
-        // =========================
         int textColor = (alpha << 24) | 0xFFFFFF;
 
         context.drawTextWithShadow(
@@ -83,11 +73,9 @@ public final class ChatHoverHintRenderer {
     }
 
     private static boolean isLookingAtTeamChat(MinecraftClient client) {
-
         if (!(client.crosshairTarget instanceof BlockHitResult hit))
             return false;
 
-        return client.world.getBlockState(hit.getBlockPos())
-                .getBlock() instanceof fable.codenames.block.TeamChatBlock;
+        return TeamChatBlock.resolveTeamChat(client.world, hit) != null;
     }
 }

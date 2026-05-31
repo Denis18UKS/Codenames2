@@ -1,11 +1,7 @@
 package fable.codenames.block;
 
 import fable.codenames.chat.TeamChatSync;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockEntityProvider;
-import net.minecraft.block.BlockRenderType;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.HorizontalFacingBlock;
+import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemPlacementContext;
@@ -32,6 +28,21 @@ public class TeamChatBlock extends HorizontalFacingBlock implements BlockEntityP
     public TeamChatBlock(Settings settings) {
         super(settings);
         setDefaultState(getStateManager().getDefaultState().with(FACING, Direction.NORTH));
+    }
+
+    public static BlockPos resolveTeamChat(World world, BlockHitResult hit) {
+        BlockPos hitPos = hit.getBlockPos();
+        if (world.getBlockState(hitPos).getBlock() instanceof TeamChatBlock) {return hitPos;}
+        BlockPos spacePos = hitPos.offset(hit.getSide());
+        if (world.getBlockState(spacePos).getBlock() instanceof TeamChatBlock) {return spacePos;}
+        for (Direction dir : Direction.Type.HORIZONTAL) {
+            BlockPos nbPos = spacePos.offset(dir);
+            if (world.getBlockState(nbPos).getBlock() instanceof TeamChatBlock) {
+                Direction facing = world.getBlockState(nbPos).get(FACING);
+                if (dir == facing.rotateYClockwise() || dir == facing.rotateYCounterclockwise()) {return nbPos;}
+            }
+        }
+        return null;
     }
 
     @Override
