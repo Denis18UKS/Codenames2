@@ -54,7 +54,7 @@ public final class TeamChatSync {
         if (chatBlockPos != null) {
             buf.writeBlockPos(chatBlockPos);
         }
-        writeChatPayload(buf, chatTeamName, canSend, TeamChats.getState(player.getServer()).getMessages());
+        writeChatPayload(buf, chatTeamName, canSend, isLeader, TeamChats.getState(player.getServer()).getMessages());
         ServerPlayNetworking.send(player, TeamChatPackets.OPEN, buf);
     }
 
@@ -67,8 +67,9 @@ public final class TeamChatSync {
             }
 
             boolean canSend = TeamChatService.canWrite(player, playerTeam);
+            boolean isLeader = Roles.getState(server).getRole(player.getUuid()) == PlayerRole.LIDER;
             PacketByteBuf buf = PacketByteBufs.create();
-            writeChatPayload(buf, playerTeam, canSend, messages);
+            writeChatPayload(buf, playerTeam, canSend, isLeader, messages);
             ServerPlayNetworking.send(player, TeamChatPackets.SYNC, buf);
         }
     }
@@ -81,9 +82,10 @@ public final class TeamChatSync {
         return fallbackTeamName;
     }
 
-    private static void writeChatPayload(PacketByteBuf buf, String teamName, boolean canSend, List<TeamChatMessage> messages) {
+    private static void writeChatPayload(PacketByteBuf buf, String teamName, boolean canSend, boolean isLeader, List<TeamChatMessage> messages) {
         buf.writeString(teamName);
         buf.writeBoolean(canSend);
+        buf.writeBoolean(isLeader);
         buf.writeVarInt(messages.size());
         for (TeamChatMessage message : messages) {
             message.write(buf);

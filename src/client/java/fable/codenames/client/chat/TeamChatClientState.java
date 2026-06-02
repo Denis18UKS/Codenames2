@@ -9,6 +9,7 @@ import java.util.List;
 public final class TeamChatClientState {
     private static String currentTeam;
     private static boolean canSend;
+    private static boolean leader;
     private static List<TeamChatMessage> messages = List.of();
     private static BlockPos activeBannerPos;
     private static boolean bannerInputActive;
@@ -17,15 +18,17 @@ public final class TeamChatClientState {
     private TeamChatClientState() {
     }
 
-    public static void update(String teamName, boolean canWrite, List<TeamChatMessage> messages) {
+    public static void update(String teamName, boolean canWrite, boolean isLeader, List<TeamChatMessage> messages) {
         currentTeam = teamName;
         canSend = canWrite;
+        leader = isLeader;
         TeamChatClientState.messages = List.copyOf(messages);
     }
 
     public static void clear() {
         currentTeam = null;
         canSend = false;
+        leader = false;
         messages = List.of();
         activeBannerPos = null;
         bannerInputActive = false;
@@ -38,6 +41,10 @@ public final class TeamChatClientState {
 
     public static boolean canSend() {
         return canSend;
+    }
+
+    public static boolean isLeader() {
+        return leader;
     }
 
     public static List<TeamChatMessage> getMessages() {
