@@ -459,6 +459,7 @@ public final class RegisterCommands {
         source.sendFeedback(() -> Text.literal("Роль " + role.getId() + " выбрана для команды " + team.getName() + "."), false);
         RoleValidation.validateAndBroadcast(source.getServer());
         BoardSync.syncToAll(source.getServer());
+        TeamChatSync.syncAll(source.getServer());
         return Command.SINGLE_SUCCESS;
     }
 
@@ -471,6 +472,7 @@ public final class RegisterCommands {
         source.sendFeedback(() -> Text.literal("Роль очищена."), false);
         RoleValidation.validateAndBroadcast(source.getServer());
         BoardSync.syncToAll(source.getServer());
+        TeamChatSync.syncAll(source.getServer());
         return Command.SINGLE_SUCCESS;
     }
 
@@ -490,6 +492,7 @@ public final class RegisterCommands {
         source.sendFeedback(() -> Text.literal("Лидером команды " + team.getName() + " назначен " + player.getName().getString() + "."), true);
         RoleValidation.validateAndBroadcast(source.getServer());
         BoardSync.syncToAll(source.getServer());
+        TeamChatSync.syncAll(source.getServer());
         return Command.SINGLE_SUCCESS;
     }
 
@@ -507,6 +510,7 @@ public final class RegisterCommands {
         source.sendFeedback(() -> Text.literal("Лидером команды " + team.getName() + " назначен тестовый бот " + name + "."), true);
         RoleValidation.validateAndBroadcast(source.getServer());
         BoardSync.syncToAll(source.getServer());
+        TeamChatSync.syncAll(source.getServer());
         return Command.SINGLE_SUCCESS;
     }
 
@@ -527,6 +531,7 @@ public final class RegisterCommands {
         source.sendFeedback(() -> Text.literal("Роль тестового бота " + name + ": " + roleText + "."), true);
         RoleValidation.validateAndBroadcast(source.getServer());
         BoardSync.syncToAll(source.getServer());
+        TeamChatSync.syncAll(source.getServer());
         return Command.SINGLE_SUCCESS;
     }
 

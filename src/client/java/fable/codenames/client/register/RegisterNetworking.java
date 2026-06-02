@@ -121,10 +121,11 @@ public final class RegisterNetworking {
                     BlockPos bannerPos = hasBannerPos ? buf.readBlockPos() : null;
                     String teamName = buf.readString();
                     boolean canSend = buf.readBoolean();
+                    boolean isLeader = buf.readBoolean();
                     List<TeamChatMessage> messages = readMessages(buf);
 
                     client.execute(() -> {
-                        TeamChatClientState.update(teamName, canSend, messages);
+                        TeamChatClientState.update(teamName, canSend, isLeader, messages);
                         if (bannerPos != null) {
                             client.setScreen(new TeamChatBannerInputScreen(bannerPos));
                         }
@@ -136,10 +137,11 @@ public final class RegisterNetworking {
 
                     String teamName = buf.readString();
                     boolean canSend = buf.readBoolean();
+                    boolean isLeader = buf.readBoolean();
                     List<TeamChatMessage> messages = readMessages(buf);
 
                     client.execute(() -> {
-                        TeamChatClientState.update(teamName, canSend, messages);
+                        TeamChatClientState.update(teamName, canSend, isLeader, messages);
                         if (!canSend && client.currentScreen instanceof TeamChatBannerInputScreen) {
                             client.setScreen(null);
                         }
