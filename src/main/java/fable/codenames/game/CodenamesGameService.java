@@ -764,6 +764,14 @@ public final class CodenamesGameService {
     }
 
     private static void syncVanillaTimerBar(MinecraftServer server, CodenamesGameState state, long now) {
+        if (state.getPhase() == CodenamesPhase.STOPPED) {
+            return;
+        }
+
+        if (now % 5L != 0L) {
+            return;
+        }
+
         float totalTicks = switch (state.getPhase()) {
             case WAITING_CLUE -> CLUE_TICKS;
             case GUESSING -> GUESSING_TICKS;

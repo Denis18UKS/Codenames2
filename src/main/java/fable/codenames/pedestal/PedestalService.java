@@ -93,7 +93,6 @@ public final class PedestalService {
     private static void applyPedestalSelections(MinecraftServer server, PedestalState pedestalState) {
         Map<UUID, PedestalState.Assignment> currentSelections = new HashMap<>();
         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-            // Use vanilla-resolved stepping block position to avoid 1-2 tick flicker from floating-point Y jitter.
             BlockPos standingOn = player.getBlockPos().down();
             PedestalState.Assignment assignment = pedestalState.get(standingOn);
             if (assignment == null || server.getScoreboard().getTeam(assignment.teamName()) == null) {
@@ -109,7 +108,10 @@ public final class PedestalService {
             server.getScoreboard().addPlayerToTeam(player.getGameProfile().getName(), team);
             Roles.getState(server).setRole(player.getUuid(), assignment.role());
             RoleDisplay.refreshPlayer(player, assignment.role());
-            showFilledVanillaXpBar(player);
+
+            if (previous == null || !previous.equals(assignment)) {
+                showFilledVanillaXpBar(player);
+            }
         }
 
         Set<UUID> previouslyManaged = new HashSet<>(MANAGED_SELECTIONS.keySet());

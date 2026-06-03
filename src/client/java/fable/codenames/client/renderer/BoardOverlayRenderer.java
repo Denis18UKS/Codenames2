@@ -52,6 +52,7 @@ public final class BoardOverlayRenderer {
         matrices.push();
         if (showCells) {
             for (Map.Entry<BlockPos, BoardCellType> entry : cells.entrySet()) {
+                if (entry.getValue() == BoardCellType.UNASSIGNED) continue;}
                 int color = entry.getValue().getColor();
                 float red = ((color >> 16) & 255) / 255.0F;
                 float green = ((color >> 8) & 255) / 255.0F;
@@ -153,8 +154,8 @@ public final class BoardOverlayRenderer {
     }
 
     private static void drawNeutralExtraInsideBox(MatrixStack matrices, VertexConsumer lines, BlockPos pos,
-            Vec3d cameraPos,
-            float red, float green, float blue) {
+                                                  Vec3d cameraPos,
+                                                  float red, float green, float blue) {
         double[] contracts = { 0.075, 0.081, 0.087, 0.093, 0.099, 0.105 };
         for (double contract : contracts) {
             Box box = new Box(pos).contract(contract).offset(-cameraPos.x, -cameraPos.y, -cameraPos.z);
@@ -177,9 +178,7 @@ public final class BoardOverlayRenderer {
         return 0xFFEF4444;
     }
 
-    private static void drawVoteBadge(MinecraftClient client, WorldRenderContext context, MatrixStack matrices,
-            VertexConsumerProvider.Immediate vertexConsumers, Vec3d cameraPos,
-            BoardClientState.VoteIndicator indicator) {
+    private static void drawVoteBadge(MinecraftClient client, WorldRenderContext context, MatrixStack matrices, VertexConsumerProvider.Immediate vertexConsumers, Vec3d cameraPos, BoardClientState.VoteIndicator indicator) {
         TextRenderer textRenderer = client.textRenderer;
         String text = voteText(indicator.count());
         int width = Math.max(14, textRenderer.getWidth(text) + 6);
@@ -192,15 +191,17 @@ public final class BoardOverlayRenderer {
         matrices.multiply(context.camera().getRotation());
         matrices.scale(-BADGE_SCALE, -BADGE_SCALE, BADGE_SCALE);
 
-        drawBackground(matrices, vertexConsumers, width, height, teamColor(indicator.teamName()));
-        vertexConsumers.draw(RenderLayer.getTextBackground());
+        drawBackground(matrices, vertexConsumers, width, height, teamColor(indicator.teamName()), true);
+        vertexConsumers.draw(RenderLayer.getTextBackgroundSeeThrough());
+
         matrices.translate(0.0F, 0.0F, -0.8F);
         int textX = (width - textRenderer.getWidth(text)) / 2;
         int textY = (height - 8) / 2;
         textRenderer.draw(text, textX + 1, textY + 1, 0xEE000000, false, matrices.peek().getPositionMatrix(),
-                vertexConsumers, TextRenderer.TextLayerType.NORMAL, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+                vertexConsumers, TextRenderer.TextLayerType.SEE_THROUGH, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
         textRenderer.draw(text, textX, textY, 0xFFFFFFFF, false, matrices.peek().getPositionMatrix(), vertexConsumers,
-                TextRenderer.TextLayerType.NORMAL, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+                TextRenderer.TextLayerType.SEE_THROUGH, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+
         vertexConsumers.draw();
         matrices.pop();
     }
@@ -240,10 +241,14 @@ public final class BoardOverlayRenderer {
         return builder.toString();
     }
 
+
     private static void drawBackground(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int width,
-            int height, int color) {
+                                       int height, int color, boolean seeThrough) {
         Matrix4f matrix = matrices.peek().getPositionMatrix();
-        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getTextBackground());
+        VertexConsumer consumer = vertexConsumers.getBuffer(seeThrough
+                ? RenderLayer.getTextBackgroundSeeThrough()
+                : RenderLayer.getTextBackground());
+
         float a = 1.0F;
         float r = ((color >> 16) & 255) / 255.0F;
         float g = ((color >> 8) & 255) / 255.0F;
