@@ -52,7 +52,10 @@ public final class BoardOverlayRenderer {
         matrices.push();
         if (showCells) {
             for (Map.Entry<BlockPos, BoardCellType> entry : cells.entrySet()) {
-                if (entry.getValue() == BoardCellType.UNASSIGNED) continue;}
+                if (entry.getValue() == BoardCellType.UNASSIGNED) {
+                    continue;
+                }
+
                 int color = entry.getValue().getColor();
                 float red = ((color >> 16) & 255) / 255.0F;
                 float green = ((color >> 8) & 255) / 255.0F;
@@ -122,9 +125,7 @@ public final class BoardOverlayRenderer {
         }
 
         matrices.pop();
-
     }
-
 
     private static boolean shouldRenderFace(BlockPos pos, Direction face, Map<BlockPos, BoardCellType> cells) {
         BlockPos neighbor = pos.offset(face);
@@ -178,7 +179,9 @@ public final class BoardOverlayRenderer {
         return 0xFFEF4444;
     }
 
-    private static void drawVoteBadge(MinecraftClient client, WorldRenderContext context, MatrixStack matrices, VertexConsumerProvider.Immediate vertexConsumers, Vec3d cameraPos, BoardClientState.VoteIndicator indicator) {
+    private static void drawVoteBadge(MinecraftClient client, WorldRenderContext context, MatrixStack matrices,
+                                      VertexConsumerProvider.Immediate vertexConsumers, Vec3d cameraPos,
+                                      BoardClientState.VoteIndicator indicator) {
         TextRenderer textRenderer = client.textRenderer;
         String text = voteText(indicator.count());
         int width = Math.max(14, textRenderer.getWidth(text) + 6);
@@ -240,7 +243,6 @@ public final class BoardOverlayRenderer {
         }
         return builder.toString();
     }
-
 
     private static void drawBackground(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int width,
                                        int height, int color, boolean seeThrough) {
