@@ -7,7 +7,8 @@ import java.util.Locale;
 
 public enum ModItems {
     OSPORIT(new MyItem(new FabricItemSettings())),
-    HOLOGRAM_PROJECTOR(new HologramProjectorItem(new FabricItemSettings().maxCount(16))),
+    HOLOGRAM_PROJECTOR(new HologramProjectorItem(new FabricItemSettings().maxCount(1))),
+    XOD_KOMAND_PROJECTOR(new XodKomandProjectorItem(new FabricItemSettings().maxCount(1))),
     BOARD_CONFIGURATOR(new BoardConfiguratorItem(new FabricItemSettings().maxCount(1))),
     PEDESTAL_CONFIGURATOR(new PedestalConfiguratorItem(new FabricItemSettings().maxCount(1))),
     TELEPORT_CONFIGURATOR(new TeleportConfiguratorItem(new FabricItemSettings().maxCount(1))),

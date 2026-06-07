@@ -9,7 +9,6 @@ import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import net.minecraft.util.math.RotationAxis;
 
 public class XodKomandProjectorEntityRenderer extends EntityRenderer<XodKomandProjectorEntity> {
@@ -75,6 +74,7 @@ public class XodKomandProjectorEntityRenderer extends EntityRenderer<XodKomandPr
             int light
     ) {
         TurnState state = resolveState();
+
         Text text = getText(state);
         int color = getColor(state);
 
@@ -86,7 +86,7 @@ public class XodKomandProjectorEntityRenderer extends EntityRenderer<XodKomandPr
         // позиция над сущностью
         matrices.translate(0.0, 1.2, 0.0);
 
-        // BILLBOARD (всегда к камере)
+        // billboard (как nametag)
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-camera.getYaw()));
         matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(camera.getPitch()));
 
@@ -95,17 +95,19 @@ public class XodKomandProjectorEntityRenderer extends EntityRenderer<XodKomandPr
 
         float x = -this.textRenderer.getWidth(text) / 2f;
 
-        // ⭐ ВАЖНО: это правильный drawText с background как у nametag
+        var matrix = matrices.peek().getPositionMatrix();
+
+        // ✔ NAMETAG STYLE RENDER (без SEE_THROUGH бага)
         this.textRenderer.draw(
                 text,
                 x,
                 0,
                 color,
                 false,
-                matrices.peek().getPositionMatrix(),
+                matrix,
                 vertexConsumers,
                 TextRenderer.TextLayerType.NORMAL,
-                0,
+                0x40000000, // background как у nametag
                 light
         );
 
