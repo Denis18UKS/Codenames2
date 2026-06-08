@@ -27,4 +27,9 @@ public class XodKomandProjectorEntity extends HologramProjectorEntity {
 
     @Override
     protected void writeCustomDataToNbt(NbtCompound nbt) {}
+
+    @Override
+    public boolean hasNoGravity() {
+        return true;
+    }
 }

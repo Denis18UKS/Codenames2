@@ -2,7 +2,6 @@ package fable.codenames.client.renderer;
 
 import fable.codenames.client.game.GameTimerClientState;
 import fable.codenames.entity.XodKomandProjectorEntity;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRenderer;
@@ -78,17 +77,13 @@ public class XodKomandProjectorEntityRenderer extends EntityRenderer<XodKomandPr
         Text text = getText(state);
         int color = getColor(state);
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        var camera = client.gameRenderer.getCamera();
-
         matrices.push();
 
-        // позиция над сущностью
+        // 📍 позиция
         matrices.translate(0.0, 1.2, 0.0);
 
-        // billboard (как nametag)
-        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-camera.getYaw()));
-        matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(camera.getPitch()));
+        // ✅ ВАЖНО: фиксированный поворот по yaw сущности
+        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-entity.getYaw()));
 
         float scale = 0.025f;
         matrices.scale(-scale, -scale, scale);
@@ -97,7 +92,6 @@ public class XodKomandProjectorEntityRenderer extends EntityRenderer<XodKomandPr
 
         var matrix = matrices.peek().getPositionMatrix();
 
-        // ✔ NAMETAG STYLE RENDER (без SEE_THROUGH бага)
         this.textRenderer.draw(
                 text,
                 x,
@@ -107,7 +101,7 @@ public class XodKomandProjectorEntityRenderer extends EntityRenderer<XodKomandPr
                 matrix,
                 vertexConsumers,
                 TextRenderer.TextLayerType.NORMAL,
-                0x40000000, // background как у nametag
+                0x40000000,
                 light
         );
 
