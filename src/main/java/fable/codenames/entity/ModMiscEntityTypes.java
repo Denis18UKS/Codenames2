@@ -20,7 +20,15 @@ public enum ModMiscEntityTypes {
             .dimensions(EntityDimensions.fixed(0.1f, 0.1f))
             .trackRangeBlocks(32)
             .trackedUpdateRate(1)
-            .build()); // <-- ТУТ точка с запятой, потому что это последний элемент
+            .build()),
+            
+    PASS_TURN_HOLOGRAM(FabricEntityTypeBuilder
+            .<PassTurnHologramEntity>create(SpawnGroup.MISC, 
+                (type, world) -> new PassTurnHologramEntity(type, world))
+            .dimensions(EntityDimensions.fixed(0.3f, 0.3f))
+            .trackRangeBlocks(32)
+            .trackedUpdateRate(1)
+            .build());
 
     private final String id;
     private final EntityType<?> entityType;

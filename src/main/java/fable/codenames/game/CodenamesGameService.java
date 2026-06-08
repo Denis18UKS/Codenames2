@@ -47,8 +47,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-
+import fable.codenames.entity.PassTurnHologramEntity;
 public final class CodenamesGameService {
+
+    private static final java.util.Map<BlockPos, PassTurnHologramEntity> PASS_HOLOGRAMS = new java.util.HashMap<>();
     private static final long CLUE_TICKS = 20L * 60L;
     private static final long GUESSING_TICKS = 20L * 60L;
     private static final long DISPUTE_TICKS = 20L * 30L;
@@ -925,8 +927,7 @@ public final class CodenamesGameService {
         updateTurnButtons(world, RED_TURN_BUTTONS, canPass && activeType == BoardCellType.RED, Direction.EAST);
     }
 
-    private static void updateTurnButtons(ServerWorld world, List<BlockPos> positions, boolean visible,
-            Direction facing) {
+    private static void updateTurnButtons(ServerWorld world, List<BlockPos> positions, boolean visible, Direction facing) {
         for (BlockPos pos : positions) {
             if (visible) {
                 BlockState buttonState = createTurnButtonState(facing);
@@ -934,8 +935,29 @@ public final class CodenamesGameService {
                 if (world.getBlockEntity(pos) instanceof ClickButtonBlockEntity entity) {
                     entity.setMode(ClickButtonBlockEntity.Mode.PASS_TURN);
                 }
+                
+                // Создаём голограмму над кнопкой
+                if (!PASS_HOLOGRAMS.containsKey(pos)) {
+                    PassTurnHologramEntity hologram = new PassTurnHologramEntity(world, pos);
+                    world.spawnEntity(hologram);
+                    PASS_HOLOGRAMS.put(pos, hologram);
+                } else {
+                    PassTurnHologramEntity existing = PASS_HOLOGRAMS.get(pos);
+                    if (existing.isRemoved()) {
+                        PassTurnHologramEntity hologram = new PassTurnHologramEntity(world, pos);
+                        world.spawnEntity(hologram);
+                        PASS_HOLOGRAMS.put(pos, hologram);
+                    }
+                }
             } else if (!world.getBlockState(pos).isAir()) {
                 world.setBlockState(pos, Blocks.AIR.getDefaultState());
+                
+                // Удаляем голограмму
+                PassTurnHologramEntity hologram = PASS_HOLOGRAMS.remove(pos);
+                if (hologram != null && !hologram.isRemoved()) {
+                    hologram.setVisible(false);
+                    hologram.discard();
+                }
             }
         }
     }
