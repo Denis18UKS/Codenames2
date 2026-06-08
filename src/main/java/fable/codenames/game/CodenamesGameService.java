@@ -936,15 +936,17 @@ public final class CodenamesGameService {
                     entity.setMode(ClickButtonBlockEntity.Mode.PASS_TURN);
                 }
                 
-                // Создаём голограмму над кнопкой
+                // Создаём голограмму над кнопкой с направлением facing
                 if (!PASS_HOLOGRAMS.containsKey(pos)) {
                     PassTurnHologramEntity hologram = new PassTurnHologramEntity(world, pos);
+                    hologram.setFixedDirection(facing.getOpposite()); // голограмма смотрит на игрока
                     world.spawnEntity(hologram);
                     PASS_HOLOGRAMS.put(pos, hologram);
                 } else {
                     PassTurnHologramEntity existing = PASS_HOLOGRAMS.get(pos);
                     if (existing.isRemoved()) {
                         PassTurnHologramEntity hologram = new PassTurnHologramEntity(world, pos);
+                        hologram.setFixedDirection(facing.getOpposite());
                         world.spawnEntity(hologram);
                         PASS_HOLOGRAMS.put(pos, hologram);
                     }

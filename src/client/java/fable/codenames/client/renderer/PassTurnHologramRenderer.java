@@ -1,58 +1,90 @@
 package fable.codenames.client.renderer;
 
 import fable.codenames.entity.PassTurnHologramEntity;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.*;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.RotationAxis;
 
 public class PassTurnHologramRenderer extends EntityRenderer<PassTurnHologramEntity> {
 
-    private final TextRenderer textRenderer;
-    private static final Text PASS_ICON = Text.literal("↩");
-    private static final int ICON_COLOR = 0xFF00FF00;
+    private static final Identifier TEXTURE =
+            new Identifier("codenames", "textures/screens/turn.png");
 
     public PassTurnHologramRenderer(EntityRendererFactory.Context context) {
         super(context);
-        this.textRenderer = context.getTextRenderer();
         this.shadowRadius = 0.0f;
     }
 
     @Override
-    public void render(
-            PassTurnHologramEntity entity,
-            float yaw,
-            float tickDelta,
-            MatrixStack matrices,
-            VertexConsumerProvider vertexConsumers,
-            int light
-    ) {
+    public void render(PassTurnHologramEntity entity,
+                       float yaw,
+                       float tickDelta,
+                       MatrixStack matrices,
+                       VertexConsumerProvider vertexConsumers,
+                       int light) {
+
         matrices.push();
 
-        matrices.translate(0.0, 0.3, 0.0);
+        // Поднимаем над землей
+        matrices.translate(0.0, 0.5, 0.0);
 
-        float scale = 0.025f;
-        matrices.scale(-scale, -scale, scale);
+        // Применяем ТОЛЬКО фиксированное направление (без billboard)
+        Direction dir = entity.getFixedDirection();
+        float rotationY = switch (dir) {
+            case SOUTH -> 180f;
+            case WEST -> 90f;
+            case NORTH -> 0f;
+            case EAST -> -90f;
+            default -> 0f; // Для UP и DOWN
+        };
+        matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(rotationY));
 
-        float x = -this.textRenderer.getWidth(PASS_ICON) / 2f;
+        // Масштабирование
+        float scale = 0.5f;
+        matrices.scale(scale, scale, scale);
 
-        var matrix = matrices.peek().getPositionMatrix();
+        // Используем RenderLayer.getEntityCutout для прозрачности без фона
+        VertexConsumer vc = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(TEXTURE));
+        MatrixStack.Entry entry = matrices.peek();
 
-        this.textRenderer.draw(
-                PASS_ICON,
-                x,
-                0,
-                ICON_COLOR,
-                false,
-                matrix,
-                vertexConsumers,
-                TextRenderer.TextLayerType.NORMAL,
-                0x40000000,
-                light
-        );
+        float size = 0.5f;
+
+        // Рендерим квадрат с текстурой
+        vc.vertex(entry.getPositionMatrix(), -size, -size, 0.0f)
+                .color(255, 255, 255, 255)
+                .texture(0.0f, 1.0f)
+                .overlay(OverlayTexture.DEFAULT_UV)
+                .light(LightmapTextureManager.MAX_LIGHT_COORDINATE)
+                .normal(0.0f, 0.0f, 1.0f)
+                .next();
+
+        vc.vertex(entry.getPositionMatrix(), size, -size, 0.0f)
+                .color(255, 255, 255, 255)
+                .texture(1.0f, 1.0f)
+                .overlay(OverlayTexture.DEFAULT_UV)
+                .light(LightmapTextureManager.MAX_LIGHT_COORDINATE)
+                .normal(0.0f, 0.0f, 1.0f)
+                .next();
+
+        vc.vertex(entry.getPositionMatrix(), size, size, 0.0f)
+                .color(255, 255, 255, 255)
+                .texture(1.0f, 0.0f)
+                .overlay(OverlayTexture.DEFAULT_UV)
+                .light(LightmapTextureManager.MAX_LIGHT_COORDINATE)
+                .normal(0.0f, 0.0f, 1.0f)
+                .next();
+
+        vc.vertex(entry.getPositionMatrix(), -size, size, 0.0f)
+                .color(255, 255, 255, 255)
+                .texture(0.0f, 0.0f)
+                .overlay(OverlayTexture.DEFAULT_UV)
+                .light(LightmapTextureManager.MAX_LIGHT_COORDINATE)
+                .normal(0.0f, 0.0f, 1.0f)
+                .next();
 
         matrices.pop();
 
@@ -61,6 +93,6 @@ public class PassTurnHologramRenderer extends EntityRenderer<PassTurnHologramEnt
 
     @Override
     public Identifier getTexture(PassTurnHologramEntity entity) {
-        return null;
+        return TEXTURE;
     }
 }
