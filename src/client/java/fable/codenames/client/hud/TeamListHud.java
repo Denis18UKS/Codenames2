@@ -1,9 +1,12 @@
 package fable.codenames.client.hud;
 
+import fable.codenames.client.game.GameTimerClientState;
+import fable.codenames.game.CodenamesPhase;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.text.Text;
 
 import java.util.List;
 
@@ -20,7 +23,6 @@ public final class TeamListHud {
     }
 
     private static void render(DrawContext drawContext) {
-
         MinecraftClient client = MinecraftClient.getInstance();
 
         if (!TeamHudState.isEnabled()
@@ -48,6 +50,7 @@ public final class TeamListHud {
         int left = TeamHudState.getX();
         int top = TeamHudState.getY();
 
+        // Основная плашка счета
         drawContext.fill(
                 left,
                 top,
@@ -89,6 +92,53 @@ public final class TeamListHud {
 
             y += TeamScoreRenderData.LINE_HEIGHT;
         }
+
+        // ===================================================
+        // Индикатор хода, прикрепленный к нижней части HUD
+        // ===================================================
+        if (GameTimerClientState.isActive()) {
+            String team = GameTimerClientState.getTeamName().toLowerCase();
+            CodenamesPhase phase = GameTimerClientState.getPhase();
+
+            boolean red = team.contains("red") || team.contains("крас");
+            boolean blue = team.contains("blue") || team.contains("син");
+
+            if (red || blue) {
+                boolean leaderPhase = (phase == CodenamesPhase.WAITING_CLUE);
+                String textStr;
+                int color;
+
+                if (red) {
+                    textStr = leaderPhase ? "Ход лидера команды Красных" : "Ход команды Красных";
+                    color = 0xFFFF5555;
+                } else {
+                    textStr = leaderPhase ? "Ход лидера команды Синих" : "Ход команды Синих";
+                    color = 0xFF55AAFF;
+                }
+
+                Text turnText = Text.literal(textStr);
+                int turnWidth = textRenderer.getWidth(turnText) + 8;
+                int turnY = top + height + 3;
+                int turnHeight = 14;
+
+                drawContext.fill(
+                        left,
+                        turnY,
+                        left + turnWidth,
+                        turnY + turnHeight,
+                        0x6A000000
+                );
+
+                drawContext.drawText(
+                        textRenderer,
+                        turnText,
+                        left + 4,
+                        turnY + 3,
+                        color,
+                        false
+                );
+            }
+        }
     }
 
     public static void renderPreview(
@@ -96,7 +146,6 @@ public final class TeamListHud {
             int left,
             int top
     ) {
-
         MinecraftClient client = MinecraftClient.getInstance();
 
         if (client.player == null || client.world == null) {
@@ -109,7 +158,6 @@ public final class TeamListHud {
                 TeamScoreRenderData.getRows(client, true);
 
         if (rows.isEmpty()) {
-
             rows = List.of(
                     new TeamScoreRenderData.TeamRow(
                             net.minecraft.text.Text.literal("Красные")
@@ -171,5 +219,27 @@ public final class TeamListHud {
 
             y += TeamScoreRenderData.LINE_HEIGHT;
         }
+
+        Text turnText = Text.literal("Ход команды Красных");
+        int turnWidth = textRenderer.getWidth(turnText) + 8;
+        int turnY = top + layout.height() + 3;
+        int turnHeight = 14;
+
+        drawContext.fill(
+                left,
+                turnY,
+                left + turnWidth,
+                turnY + turnHeight,
+                0x88000000
+        );
+
+        drawContext.drawText(
+                textRenderer,
+                turnText,
+                left + 4,
+                turnY + 3,
+                0xFFFF5555,
+                false
+        );
     }
 }

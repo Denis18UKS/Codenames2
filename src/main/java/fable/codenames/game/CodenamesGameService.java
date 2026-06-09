@@ -935,13 +935,21 @@ public final class CodenamesGameService {
                 if (world.getBlockEntity(pos) instanceof ClickButtonBlockEntity entity) {
                     entity.setMode(ClickButtonBlockEntity.Mode.PASS_TURN);
                 }
-                
-                // Создаём голограмму над кнопкой с направлением facing
+
                 if (!PASS_HOLOGRAMS.containsKey(pos)) {
-                    PassTurnHologramEntity hologram = new PassTurnHologramEntity(world, pos);
-                    hologram.setFixedDirection(facing.getOpposite()); // голограмма смотрит на игрока
-                    world.spawnEntity(hologram);
-                    PASS_HOLOGRAMS.put(pos, hologram);
+                    net.minecraft.util.math.Box box = new net.minecraft.util.math.Box(pos).expand(0.5);
+                    List<PassTurnHologramEntity> existingList = world.getEntitiesByClass(PassTurnHologramEntity.class, box, e -> true);
+
+                    if (!existingList.isEmpty()) {
+                        PassTurnHologramEntity existing = existingList.get(0);
+                        existing.setFixedDirection(facing.getOpposite());
+                        PASS_HOLOGRAMS.put(pos, existing);
+                    } else {
+                        PassTurnHologramEntity hologram = new PassTurnHologramEntity(world, pos);
+                        hologram.setFixedDirection(facing.getOpposite());
+                        world.spawnEntity(hologram);
+                        PASS_HOLOGRAMS.put(pos, hologram);
+                    }
                 } else {
                     PassTurnHologramEntity existing = PASS_HOLOGRAMS.get(pos);
                     if (existing.isRemoved()) {
@@ -953,8 +961,7 @@ public final class CodenamesGameService {
                 }
             } else if (!world.getBlockState(pos).isAir()) {
                 world.setBlockState(pos, Blocks.AIR.getDefaultState());
-                
-                // Удаляем голограмму
+
                 PassTurnHologramEntity hologram = PASS_HOLOGRAMS.remove(pos);
                 if (hologram != null && !hologram.isRemoved()) {
                     hologram.setVisible(false);

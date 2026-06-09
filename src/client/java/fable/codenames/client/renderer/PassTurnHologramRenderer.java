@@ -29,61 +29,56 @@ public class PassTurnHologramRenderer extends EntityRenderer<PassTurnHologramEnt
 
         matrices.push();
 
-        // Поднимаем над землей
         matrices.translate(0.0, 0.5, 0.0);
 
-        // Применяем ТОЛЬКО фиксированное направление (без billboard)
         Direction dir = entity.getFixedDirection();
         float rotationY = switch (dir) {
             case SOUTH -> 180f;
             case WEST -> 90f;
             case NORTH -> 0f;
             case EAST -> -90f;
-            default -> 0f; // Для UP и DOWN
+            default -> 0f;
         };
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(rotationY));
 
-        // Масштабирование
         float scale = 0.5f;
         matrices.scale(scale, scale, scale);
 
-        // Используем RenderLayer.getEntityCutout для прозрачности без фона
         VertexConsumer vc = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(TEXTURE));
         MatrixStack.Entry entry = matrices.peek();
 
         float size = 0.5f;
 
-        // Рендерим квадрат с текстурой
         vc.vertex(entry.getPositionMatrix(), -size, -size, 0.0f)
                 .color(255, 255, 255, 255)
                 .texture(0.0f, 1.0f)
                 .overlay(OverlayTexture.DEFAULT_UV)
-                .light(LightmapTextureManager.MAX_LIGHT_COORDINATE)
-                .normal(0.0f, 0.0f, 1.0f)
+                .light(light)
+                .normal(entry.getNormalMatrix(), 0.0f, 0.0f, 1.0f)
                 .next();
 
         vc.vertex(entry.getPositionMatrix(), size, -size, 0.0f)
                 .color(255, 255, 255, 255)
                 .texture(1.0f, 1.0f)
                 .overlay(OverlayTexture.DEFAULT_UV)
-                .light(LightmapTextureManager.MAX_LIGHT_COORDINATE)
-                .normal(0.0f, 0.0f, 1.0f)
+                .light(light)
+                .normal(entry.getNormalMatrix(), 0.0f, 0.0f, 1.0f)
                 .next();
 
         vc.vertex(entry.getPositionMatrix(), size, size, 0.0f)
                 .color(255, 255, 255, 255)
                 .texture(1.0f, 0.0f)
                 .overlay(OverlayTexture.DEFAULT_UV)
-                .light(LightmapTextureManager.MAX_LIGHT_COORDINATE)
-                .normal(0.0f, 0.0f, 1.0f)
+                .light(light)
+                .normal(entry.getNormalMatrix(), 0.0f, 0.0f, 1.0f)
                 .next();
 
         vc.vertex(entry.getPositionMatrix(), -size, size, 0.0f)
                 .color(255, 255, 255, 255)
                 .texture(0.0f, 0.0f)
                 .overlay(OverlayTexture.DEFAULT_UV)
-                .light(LightmapTextureManager.MAX_LIGHT_COORDINATE)
-                .normal(0.0f, 0.0f, 1.0f)
+                .light(light)
+                .normal(entry.getNormalMatrix(), 0.0f, 0.0f, 1.0f)
                 .next();
 
         matrices.pop();
