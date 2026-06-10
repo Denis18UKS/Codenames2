@@ -4,7 +4,6 @@ import fable.codenames.entity.PassTurnHologramEntity;
 import net.minecraft.client.render.*;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.EntityRendererFactory;
-import net.minecraft.client.render.LightmapTextureManager;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.Identifier;
@@ -22,19 +21,19 @@ public class PassTurnHologramRenderer extends EntityRenderer<PassTurnHologramEnt
     }
 
     @Override
-    public void render(PassTurnHologramEntity entity,
-                       float yaw,
-                       float tickDelta,
-                       MatrixStack matrices,
-                       VertexConsumerProvider vertexConsumers,
-                       int light) {
+    public void render(
+            PassTurnHologramEntity entity,
+            float yaw,
+            float tickDelta,
+            MatrixStack matrices,
+            VertexConsumerProvider vertexConsumers,
+            int light
+    ) {
 
         matrices.push();
 
-        // немного поднимаем
         matrices.translate(0.0, 0.5, 0.0);
 
-        // направление
         Direction dir = entity.getFixedDirection();
 
         float rotationY = switch (dir) {
@@ -47,26 +46,23 @@ public class PassTurnHologramRenderer extends EntityRenderer<PassTurnHologramEnt
 
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(rotationY));
 
-        // масштаб
         float scale = 0.5f;
         matrices.scale(scale, scale, scale);
 
-        // 🔥 ВАЖНО: слой без cullling
-        VertexConsumer vc = vertexConsumers.getBuffer(RenderLayer.getEntityCutoutNoCull(TEXTURE));
+        // СВЕТЯЩИЙСЯ РЕНДЕР-СЛОЙ
+        VertexConsumer vc = vertexConsumers.getBuffer(
+                RenderLayer.getEyes(TEXTURE)
+        );
 
         MatrixStack.Entry entry = matrices.peek();
 
         float size = 0.5f;
 
-        // 🔥 ВАЖНО: всегда максимальный свет
-        int fullBright = LightmapTextureManager.MAX_LIGHT_COORDINATE;
-
-        // квадрат (иконка)
         vc.vertex(entry.getPositionMatrix(), -size, -size, 0.0f)
                 .color(255, 255, 255, 255)
                 .texture(0.0f, 1.0f)
                 .overlay(OverlayTexture.DEFAULT_UV)
-                .light(fullBright)
+                .light(0xF000F0)
                 .normal(0.0f, 0.0f, 1.0f)
                 .next();
 
@@ -74,7 +70,7 @@ public class PassTurnHologramRenderer extends EntityRenderer<PassTurnHologramEnt
                 .color(255, 255, 255, 255)
                 .texture(1.0f, 1.0f)
                 .overlay(OverlayTexture.DEFAULT_UV)
-                .light(fullBright)
+                .light(0xF000F0)
                 .normal(0.0f, 0.0f, 1.0f)
                 .next();
 
@@ -82,7 +78,7 @@ public class PassTurnHologramRenderer extends EntityRenderer<PassTurnHologramEnt
                 .color(255, 255, 255, 255)
                 .texture(1.0f, 0.0f)
                 .overlay(OverlayTexture.DEFAULT_UV)
-                .light(fullBright)
+                .light(0xF000F0)
                 .normal(0.0f, 0.0f, 1.0f)
                 .next();
 
@@ -90,7 +86,7 @@ public class PassTurnHologramRenderer extends EntityRenderer<PassTurnHologramEnt
                 .color(255, 255, 255, 255)
                 .texture(0.0f, 0.0f)
                 .overlay(OverlayTexture.DEFAULT_UV)
-                .light(fullBright)
+                .light(0xF000F0)
                 .normal(0.0f, 0.0f, 1.0f)
                 .next();
 
