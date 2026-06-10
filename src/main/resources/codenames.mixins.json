@@ -6,7 +6,8 @@
 		"PlayerInventoryMixin",
 		"PlayerEntityMixin",
 		"ScreenHandlerMixin",
-		"ServerPlayNetworkHandlerMixin"
+		"ServerPlayNetworkHandlerMixin",
+		"EntityMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

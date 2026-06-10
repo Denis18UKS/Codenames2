@@ -32,6 +32,7 @@ public class PassTurnHologramRenderer extends EntityRenderer<PassTurnHologramEnt
         matrices.translate(0.0, 0.5, 0.0);
 
         Direction dir = entity.getFixedDirection();
+
         float rotationY = switch (dir) {
             case SOUTH -> 180f;
             case WEST -> 90f;
@@ -39,6 +40,7 @@ public class PassTurnHologramRenderer extends EntityRenderer<PassTurnHologramEnt
             case EAST -> -90f;
             default -> 0f;
         };
+
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(rotationY));
 
         float scale = 0.5f;

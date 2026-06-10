@@ -2,17 +2,22 @@ package fable.codenames.entity;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 
 public class PassTurnHologramEntity extends Entity {
 
+    private static final TrackedData<Integer> DIRECTION = DataTracker.registerData(PassTurnHologramEntity.class, TrackedDataHandlerRegistry.INTEGER);
+    
     private BlockPos attachedButtonPos;
     private boolean visible = true;
-    private Direction fixedDirection = Direction.NORTH;
 
     @SuppressWarnings("unchecked")
     public PassTurnHologramEntity(EntityType<?> type, World world) {
@@ -21,23 +26,37 @@ public class PassTurnHologramEntity extends Entity {
         this.setInvulnerable(true);
     }
 
-    // Конструктор с игроком (основной)
+    // Основной конструктор с игроком
     public PassTurnHologramEntity(World world, BlockPos buttonPos, PlayerEntity player) {
         this(ModMiscEntityTypes.PASS_TURN_HOLOGRAM.getEntityType(), world);
         this.attachedButtonPos = buttonPos;
-        this.setPosition(buttonPos.getX() + 0.5, buttonPos.getY() + 0.8, buttonPos.getZ() + 0.5);
-        
+        this.setPosition(
+                buttonPos.getX() + 0.5,
+                buttonPos.getY() + 0.8,
+                buttonPos.getZ() + 0.5
+        );
+
         if (player != null) {
-            this.fixedDirection = player.getHorizontalFacing();
+            Direction dir = Direction.fromRotation(player.getYaw());
+            setFixedDirection(dir);
+            this.setYaw(player.getYaw());
         }
     }
 
-    // Конструктор без игрока (для обратной совместимости)
+    // Конструктор без игрока
     public PassTurnHologramEntity(World world, BlockPos buttonPos) {
         this(ModMiscEntityTypes.PASS_TURN_HOLOGRAM.getEntityType(), world);
         this.attachedButtonPos = buttonPos;
-        this.setPosition(buttonPos.getX() + 0.5, buttonPos.getY() + 0.8, buttonPos.getZ() + 0.5);
-        this.fixedDirection = Direction.NORTH;
+        this.setPosition(
+                buttonPos.getX() + 0.5,
+                buttonPos.getY() + 0.8,
+                buttonPos.getZ() + 0.5
+        );
+    }
+
+    @Override
+    protected void initDataTracker() {
+        this.dataTracker.startTracking(DIRECTION, Direction.NORTH.getId());
     }
 
     @Override
@@ -45,7 +64,7 @@ public class PassTurnHologramEntity extends Entity {
         super.tick();
         this.noClip = true;
         this.setVelocity(0, 0, 0);
-        
+
         if (attachedButtonPos != null && !visible) {
             this.discard();
         }
@@ -59,27 +78,35 @@ public class PassTurnHologramEntity extends Entity {
     }
 
     public Direction getFixedDirection() {
-        return this.fixedDirection;
+        return Direction.byId(this.dataTracker.get(DIRECTION));
     }
 
     public void setFixedDirection(Direction direction) {
-        this.fixedDirection = direction;
+        this.dataTracker.set(DIRECTION, direction.getId());
     }
 
     @Override
-    protected void initDataTracker() {}
-
-    @Override
     public void readCustomDataFromNbt(NbtCompound nbt) {
-        if (nbt.contains("ButtonX") && nbt.contains("ButtonY") && nbt.contains("ButtonZ")) {
+        if (nbt.contains("ButtonX")) {
             this.attachedButtonPos = new BlockPos(
-                nbt.getInt("ButtonX"),
-                nbt.getInt("ButtonY"),
-                nbt.getInt("ButtonZ")
+                    nbt.getInt("ButtonX"),
+                    nbt.getInt("ButtonY"),
+                    nbt.getInt("ButtonZ")
             );
         }
+
+        // Читаем направление из NBT
         if (nbt.contains("FixedDirection")) {
-            this.fixedDirection = Direction.byId(nbt.getInt("FixedDirection"));
+            setFixedDirection(Direction.byId(nbt.getInt("FixedDirection")));
+        }
+        
+        if (nbt.contains("face")) {
+            String faceStr = nbt.getString("face").toUpperCase();
+            try {
+                setFixedDirection(Direction.valueOf(faceStr));
+            } catch (IllegalArgumentException e) {
+                // Оставляем текущее направление
+            }
         }
     }
 
@@ -90,6 +117,6 @@ public class PassTurnHologramEntity extends Entity {
             nbt.putInt("ButtonY", attachedButtonPos.getY());
             nbt.putInt("ButtonZ", attachedButtonPos.getZ());
         }
-        nbt.putInt("FixedDirection", this.fixedDirection.getId());
+        nbt.putInt("FixedDirection", getFixedDirection().getId());
     }
 }
