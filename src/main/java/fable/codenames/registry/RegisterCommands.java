@@ -67,6 +67,7 @@ public final class RegisterCommands {
                     .then(registerScoreNode())
                     .then(registerBoardNode())
                     .then(registerGameNode())
+                    .then(registerTimerNode())
                     .then(registerButtonNode())
                     .then(registerHologramNode())
                     .then(registerChatNode())
@@ -249,6 +250,83 @@ public final class RegisterCommands {
                         }));
     }
 
+    private static ArgumentBuilder<ServerCommandSource, ?> registerTimerNode() {
+        return CommandManager.literal("timer")
+                .then(CommandManager.literal("status")
+                        .executes(context -> {
+                            context.getSource().sendFeedback(
+                                    () -> CodenamesGameService.getTimerStatus(context.getSource().getServer()), false);
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .then(CommandManager.literal("pause")
+                        .executes(context -> {
+                            boolean success = CodenamesGameService.pauseTimer(context.getSource().getServer());
+                            if (!success) {
+                                context.getSource().sendError(Text.literal("Нельзя поставить на паузу — игра не активна."));
+                                return 0;
+                            }
+                            context.getSource().sendFeedback(() -> Text.literal("Таймер поставлен на паузу."), true);
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .then(CommandManager.literal("resume")
+                        .executes(context -> {
+                            boolean success = CodenamesGameService.resumeTimer(context.getSource().getServer());
+                            if (!success) {
+                                context.getSource().sendError(Text.literal("Таймер не на паузе или игра не активна."));
+                                return 0;
+                            }
+                            context.getSource().sendFeedback(() -> Text.literal("Таймер возобновлён."), true);
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .then(CommandManager.literal("add")
+                        .then(CommandManager.argument("seconds", IntegerArgumentType.integer(1, 3600))
+                                .executes(context -> {
+                                    int seconds = IntegerArgumentType.getInteger(context, "seconds");
+                                    boolean success = CodenamesGameService.addTime(context.getSource().getServer(), seconds);
+                                    if (!success) {
+                                        context.getSource().sendError(Text.literal("Нельзя добавить время — игра не активна."));
+                                        return 0;
+                                    }
+                                    context.getSource().sendFeedback(() -> Text.literal("Добавлено " + seconds + " секунд к таймеру."), true);
+                                    return Command.SINGLE_SUCCESS;
+                                })))
+                .then(CommandManager.literal("remove")
+                        .then(CommandManager.argument("seconds", IntegerArgumentType.integer(1, 3600))
+                                .executes(context -> {
+                                    int seconds = IntegerArgumentType.getInteger(context, "seconds");
+                                    boolean success = CodenamesGameService.removeTime(context.getSource().getServer(), seconds);
+                                    if (!success) {
+                                        context.getSource().sendError(Text.literal("Нельзя убрать время — игра не активна."));
+                                        return 0;
+                                    }
+                                    context.getSource().sendFeedback(() -> Text.literal("Убрано " + seconds + " секунд с таймера."), true);
+                                    return Command.SINGLE_SUCCESS;
+                                })))
+                .then(CommandManager.literal("set")
+                        .then(CommandManager.literal("clue")
+                                .then(CommandManager.argument("seconds", IntegerArgumentType.integer(1, 3600))
+                                        .executes(context -> {
+                                            int seconds = IntegerArgumentType.getInteger(context, "seconds");
+                                            CodenamesGameService.setClueTimer(seconds);
+                                            context.getSource().sendFeedback(() -> Text.literal("Таймер подсказки установлен на " + seconds + " сек."), true);
+                                            return Command.SINGLE_SUCCESS;
+                                        })))
+                        .then(CommandManager.literal("guessing")
+                                .then(CommandManager.argument("seconds", IntegerArgumentType.integer(1, 3600))
+                                        .executes(context -> {
+                                            int seconds = IntegerArgumentType.getInteger(context, "seconds");
+                                            CodenamesGameService.setGuessingTimer(seconds);
+                                            context.getSource().sendFeedback(() -> Text.literal("Таймер угадывания установлен на " + seconds + " сек."), true);
+                                            return Command.SINGLE_SUCCESS;
+                                        }))))
+                .then(CommandManager.literal("reset")
+                        .executes(context -> {
+                            CodenamesGameService.resetTimers();
+                            context.getSource().sendFeedback(() -> Text.literal("Таймеры сброшены к значениям по умолчанию (60 сек)."), true);
+                            return Command.SINGLE_SUCCESS;
+                        }));
+    }
+
     private static ArgumentBuilder<ServerCommandSource, ?> registerButtonNode() {
         return CommandManager.literal("button")
                 .then(CommandManager.literal("mode")
@@ -342,26 +420,6 @@ public final class RegisterCommands {
         TeamChats.getState(source.getServer()).clearMessages();
         TeamChatSync.syncAll(source.getServer());
         source.sendFeedback(() -> Text.literal("Командный чат очищен."), true);
-        return Command.SINGLE_SUCCESS;
-    }
-
-    private static int openChatMoveEditor(ServerCommandSource source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        ServerPlayerEntity player = source.getPlayerOrThrow();
-        HitResult hitResult = player.raycast(5.0D, 0.0F, false);
-        if (!(hitResult instanceof BlockHitResult blockHitResult)) {
-            source.sendError(Text.literal("Посмотри на баннер командного чата."));
-            return 0;
-        }
-
-        BlockPos pos = blockHitResult.getBlockPos();
-        if (!(player.getWorld().getBlockState(pos).getBlock() instanceof TeamChatBlock)) {
-            source.sendError(Text.literal("Посмотри на баннер командного чата."));
-            return 0;
-        }
-
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeBlockPos(pos);
-        ServerPlayNetworking.send(player, TeamChatPackets.OPEN_MOVE_BANNER, buf);
         return Command.SINGLE_SUCCESS;
     }
 

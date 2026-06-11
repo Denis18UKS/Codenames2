@@ -48,6 +48,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import fable.codenames.entity.PassTurnHologramEntity;
+
 public final class CodenamesGameService {
 
     private static final java.util.Map<BlockPos, PassTurnHologramEntity> PASS_HOLOGRAMS = new java.util.HashMap<>();
@@ -69,6 +70,12 @@ public final class CodenamesGameService {
     private static boolean pausedForMissingPlayers;
     private static long pausedRemainingTicks;
     private static long resumeAfterPlayersReadyTick = -1L;
+
+    // ========== Управление таймером ==========
+    private static boolean timerPaused = false;
+    private static long timerPausedRemaining = 0L;
+    private static long customClueTicks = CLUE_TICKS;
+    private static long customGuessingTicks = GUESSING_TICKS;
 
     private CodenamesGameService() {
     }
@@ -134,6 +141,7 @@ public final class CodenamesGameService {
     public static void stop(MinecraftServer server) {
         CodenamesGames.getState(server).stop();
         clearMissingPlayersPause();
+        resetTimers();
         BoardSelectionState.clearAll();
         BoardSelectionSync.syncToAll(server);
         clearOsporitItems(server);
@@ -156,6 +164,7 @@ public final class CodenamesGameService {
     private static void reset(MinecraftServer server, boolean teleportToLobby) {
         CodenamesGames.getState(server).stop();
         clearMissingPlayersPause();
+        resetTimers();
         BoardSelectionState.clearAll();
         BoardSelectionSync.syncToAll(server);
         clearOsporitItems(server);
@@ -197,10 +206,6 @@ public final class CodenamesGameService {
         return state.getPhase() == CodenamesPhase.GUESSING && team != null && team.equals(state.getActiveTeam());
     }
 
-    /**
-     * Returns true when the message was consumed as game input and should not be
-     * added to chat.
-     */
     public static boolean tryAcceptClue(MinecraftServer server, ServerPlayerEntity sender, String rawMessage) {
         if (pausedForMissingPlayers) {
             return false;
@@ -225,8 +230,7 @@ public final class CodenamesGameService {
         }
 
         state.setClue(clue.word(), clue.count());
-        // long guessingDuration = state.isGuessingTimerUnlocked() ? GUESSING_TICKS : 0L;
-        long guessingDuration = GUESSING_TICKS;
+        long guessingDuration = customGuessingTicks;
         state.setPhase(CodenamesPhase.GUESSING, team, server.getOverworld().getTime(), guessingDuration);
         state.unlockGuessingTimer();
         GameTimerSync.syncToAll(server);
@@ -487,7 +491,7 @@ public final class CodenamesGameService {
         if (state.getPhase() == CodenamesPhase.WAITING_CLUE) {
             String nextTeam = nextTeam(server, state.getActiveTeam());
             broadcastActionBar(server, Text.literal(
-                    "\u0412\u0440\u0435\u043c\u044f \u0432\u044b\u0448\u043b\u043e. \u0425\u043e\u0434 \u043f\u0435\u0440\u0435\u0445\u043e\u0434\u0438\u0442 \u043a\u043e\u043c\u0430\u043d\u0434\u0435 ")
+                    "Время вышло. Ход переходит команде ")
                     .formatted(Formatting.YELLOW)
                     .append(Text.literal(teamDisplayPluralClean(nextTeam)).formatted(teamFormatting(nextTeam)))
                     .append(Text.literal(".").formatted(Formatting.YELLOW)));
@@ -498,7 +502,7 @@ public final class CodenamesGameService {
             }
             String nextTeam = nextTeam(server, state.getActiveTeam());
             broadcastActionBar(server, Text.literal(
-                    "\u0412\u0440\u0435\u043c\u044f \u0432\u044b\u0448\u043b\u043e. \u0425\u043e\u0434 \u043f\u0435\u0440\u0435\u0445\u043e\u0434\u0438\u0442 \u043a\u043e\u043c\u0430\u043d\u0434\u0435 ")
+                    "Время вышло. Ход переходит команде ")
                     .formatted(Formatting.YELLOW)
                     .append(Text.literal(teamDisplayPluralClean(nextTeam)).formatted(teamFormatting(nextTeam)))
                     .append(Text.literal(".").formatted(Formatting.YELLOW)));
@@ -521,7 +525,7 @@ public final class CodenamesGameService {
                 resumeAfterPlayersReadyTick = -1L;
                 GameTimerSync.syncToAll(server);
                 broadcastActionBar(server, Text.literal(
-                        "\u0418\u0433\u0440\u0430 \u043f\u043e\u0441\u0442\u0430\u0432\u043b\u0435\u043d\u0430 \u043d\u0430 \u043f\u0430\u0443\u0437\u0443: \u043d\u0435 \u0445\u0432\u0430\u0442\u0430\u0435\u0442 \u0438\u0433\u0440\u043e\u043a\u043e\u0432.")
+                        "Игра поставлена на паузу: не хватает игроков.")
                         .formatted(Formatting.YELLOW));
             }
             state.resetPhaseTimer(now, pausedRemainingTicks);
@@ -535,7 +539,7 @@ public final class CodenamesGameService {
         if (resumeAfterPlayersReadyTick < 0L) {
             resumeAfterPlayersReadyTick = now + PLAYER_RESUME_DELAY_TICKS;
             broadcastActionBar(server, Text.literal(
-                    "\u0418\u0433\u0440\u043e\u043a\u0438 \u0432\u0435\u0440\u043d\u0443\u043b\u0438\u0441\u044c. \u0418\u0433\u0440\u0430 \u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u0441\u044f \u0447\u0435\u0440\u0435\u0437 5 \u0441\u0435\u043a\u0443\u043d\u0434.")
+                    "Игроки вернулись. Игра продолжится через 5 секунд.")
                     .formatted(Formatting.GREEN));
         }
 
@@ -548,7 +552,7 @@ public final class CodenamesGameService {
         clearMissingPlayersPause();
         GameTimerSync.syncToAll(server);
         broadcastActionBar(server,
-                Text.literal("\u0418\u0433\u0440\u0430 \u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0435\u043d\u0430.")
+                Text.literal("Игра продолжена.")
                         .formatted(Formatting.GREEN));
         return false;
     }
@@ -583,7 +587,7 @@ public final class CodenamesGameService {
     private static void startCluePhase(MinecraftServer server, String teamName) {
         CodenamesGameState state = CodenamesGames.getState(server);
         state.clearClue();
-        long clueDuration = state.isGuessingTimerUnlocked() ? CLUE_TICKS : 0L;
+        long clueDuration = state.isGuessingTimerUnlocked() ? customClueTicks : 0L;
         state.setPhase(CodenamesPhase.WAITING_CLUE, teamName, server.getOverworld().getTime(), clueDuration);
         state.clearGuessesThisTurn();
         BoardSelectionState.clearAll();
@@ -621,8 +625,8 @@ public final class CodenamesGameService {
         }
 
         String rawCount = parts[1].toLowerCase(Locale.ROOT);
-        if (rawCount.equals("\u043d\u0435\u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u043d\u043e")
-                || rawCount.equals("\u0431\u0435\u0437\u043b\u0438\u043c\u0438\u0442")
+        if (rawCount.equals("неограниченно")
+                || rawCount.equals("безлимит")
                 || rawCount.equals("inf")) {
             return new ParsedClue(word, UNLIMITED_CLUE);
         }
@@ -669,6 +673,7 @@ public final class CodenamesGameService {
         Roles.clearAll(server);
         CodenamesGames.getState(server).stop();
         clearMissingPlayersPause();
+        resetTimers();
         BoardSelectionState.clearAll();
         BoardSelectionSync.syncToAll(server);
         clearOsporitItems(server);
@@ -688,7 +693,7 @@ public final class CodenamesGameService {
                 continue;
 
             ItemStack stack = new ItemStack(ModItems.OSPORIT.getItem());
-            player.getInventory().setStack(8, stack); // слот 9 (индекс 8)
+            player.getInventory().setStack(8, stack);
             syncInventory(player);
         }
     }
@@ -775,8 +780,8 @@ public final class CodenamesGameService {
         }
 
         float totalTicks = switch (state.getPhase()) {
-            case WAITING_CLUE -> CLUE_TICKS;
-            case GUESSING -> GUESSING_TICKS;
+            case WAITING_CLUE -> customClueTicks;
+            case GUESSING -> customGuessingTicks;
             default -> 0L;
         };
 
@@ -896,10 +901,10 @@ public final class CodenamesGameService {
             return BoardCellType.UNASSIGNED;
         }
         String normalized = teamName.toLowerCase(Locale.ROOT);
-        if (normalized.contains("red") || normalized.contains("\u043a\u0440\u0430\u0441")) {
+        if (normalized.contains("red") || normalized.contains("крас")) {
             return BoardCellType.RED;
         }
-        if (normalized.contains("blue") || normalized.contains("\u0441\u0438\u043d")) {
+        if (normalized.contains("blue") || normalized.contains("син")) {
             return BoardCellType.BLUE;
         }
         return BoardCellType.UNASSIGNED;
@@ -979,7 +984,7 @@ public final class CodenamesGameService {
 
     private static String clueLabel(int count) {
         return count == UNLIMITED_CLUE
-                ? "\u043d\u0435\u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u043d\u043e"
+                ? "неограниченно"
                 : Integer.toString(count);
     }
 
@@ -1012,10 +1017,10 @@ public final class CodenamesGameService {
     private static String teamDisplaySingularInstrumental(String teamName) {
         BoardCellType type = expectedTypeForTeam(teamName);
         if (type == BoardCellType.RED) {
-            return "\u041a\u0440\u0430\u0441\u043d\u043e\u0439";
+            return "Красной";
         }
         if (type == BoardCellType.BLUE) {
-            return "\u0421\u0438\u043d\u0435\u0439";
+            return "Синей";
         }
         return teamName == null ? "" : teamName;
     }
@@ -1023,10 +1028,10 @@ public final class CodenamesGameService {
     private static String teamDisplayPluralClean(String teamName) {
         BoardCellType type = expectedTypeForTeam(teamName);
         if (type == BoardCellType.RED) {
-            return "\u041a\u0440\u0430\u0441\u043d\u044b\u0435";
+            return "Красные";
         }
         if (type == BoardCellType.BLUE) {
-            return "\u0421\u0438\u043d\u0438\u0435";
+            return "Синие";
         }
         return teamName == null ? "" : teamName;
     }
@@ -1040,6 +1045,126 @@ public final class CodenamesGameService {
             return Formatting.BLUE;
         }
         return Formatting.WHITE;
+    }
+
+    // ========== Методы управления таймером ==========
+
+    public static void setClueTimer(int seconds) {
+        customClueTicks = Math.max(20L, seconds * 20L);
+    }
+
+    public static void setGuessingTimer(int seconds) {
+        customGuessingTicks = Math.max(20L, seconds * 20L);
+    }
+
+    public static long getClueTimerTicks() {
+        return customClueTicks;
+    }
+
+    public static long getGuessingTimerTicks() {
+        return customGuessingTicks;
+    }
+
+    public static void resetTimers() {
+        customClueTicks = CLUE_TICKS;
+        customGuessingTicks = GUESSING_TICKS;
+        timerPaused = false;
+        timerPausedRemaining = 0L;
+    }
+
+    public static boolean pauseTimer(MinecraftServer server) {
+        CodenamesGameState state = CodenamesGames.getState(server);
+        if (state.getPhase() == CodenamesPhase.STOPPED || state.getPhase() == CodenamesPhase.FINISHED) {
+            return false;
+        }
+        
+        if (!timerPaused) {
+            long now = server.getOverworld().getTime();
+            timerPausedRemaining = Math.max(0L, state.getPhaseEndTick() - now);
+            timerPaused = true;
+            
+            state.setPhase(state.getPhase(), state.getActiveTeam(), now, Long.MAX_VALUE - now);
+            GameTimerSync.syncToAll(server);
+            
+            broadcastActionBar(server, Text.literal("⏸ Таймер поставлен на паузу.").formatted(Formatting.YELLOW));
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean resumeTimer(MinecraftServer server) {
+        CodenamesGameState state = CodenamesGames.getState(server);
+        if (state.getPhase() == CodenamesPhase.STOPPED || state.getPhase() == CodenamesPhase.FINISHED) {
+            return false;
+        }
+        
+        if (timerPaused) {
+            long now = server.getOverworld().getTime();
+            state.setPhase(state.getPhase(), state.getActiveTeam(), now, timerPausedRemaining);
+            timerPaused = false;
+            timerPausedRemaining = 0L;
+            
+            GameTimerSync.syncToAll(server);
+            broadcastActionBar(server, Text.literal("▶ Таймер возобновлён.").formatted(Formatting.GREEN));
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean addTime(MinecraftServer server, int seconds) {
+        CodenamesGameState state = CodenamesGames.getState(server);
+        if (state.getPhase() == CodenamesPhase.STOPPED || state.getPhase() == CodenamesPhase.FINISHED) {
+            return false;
+        }
+        
+        long now = server.getOverworld().getTime();
+        long remaining = Math.max(0L, state.getPhaseEndTick() - now);
+        long newRemaining = remaining + (seconds * 20L);
+        
+        state.setPhase(state.getPhase(), state.getActiveTeam(), now, newRemaining);
+        GameTimerSync.syncToAll(server);
+        
+        broadcastActionBar(server, Text.literal("⏱ Добавлено " + seconds + " сек. к таймеру.").formatted(Formatting.GREEN));
+        return true;
+    }
+
+    public static boolean removeTime(MinecraftServer server, int seconds) {
+        CodenamesGameState state = CodenamesGames.getState(server);
+        if (state.getPhase() == CodenamesPhase.STOPPED || state.getPhase() == CodenamesPhase.FINISHED) {
+            return false;
+        }
+        
+        long now = server.getOverworld().getTime();
+        long remaining = Math.max(0L, state.getPhaseEndTick() - now);
+        long newRemaining = Math.max(20L, remaining - (seconds * 20L));
+        
+        state.setPhase(state.getPhase(), state.getActiveTeam(), now, newRemaining);
+        GameTimerSync.syncToAll(server);
+        
+        broadcastActionBar(server, Text.literal("⏱ Убрано " + seconds + " сек. с таймера.").formatted(Formatting.RED));
+        return true;
+    }
+
+    public static Text getTimerStatus(MinecraftServer server) {
+        CodenamesGameState state = CodenamesGames.getState(server);
+        if (state.getPhase() == CodenamesPhase.STOPPED || state.getPhase() == CodenamesPhase.FINISHED) {
+            return Text.literal("Игра не активна.");
+        }
+        
+        long now = server.getOverworld().getTime();
+        long remaining = Math.max(0L, state.getPhaseEndTick() - now);
+        long seconds = remaining / 20L;
+        
+        String pauseStatus = timerPaused ? " (пауза)" : "";
+        
+        return Text.literal("Фаза: " + state.getPhase().getId() 
+            + " | Осталось: " + seconds + " сек." + pauseStatus
+            + " | Clue: " + (customClueTicks / 20L) + "с"
+            + " | Guess: " + (customGuessingTicks / 20L) + "с");
+    }
+
+    public static boolean isTimerPaused() {
+        return timerPaused;
     }
 
     private record ParsedClue(String word, int count) {
