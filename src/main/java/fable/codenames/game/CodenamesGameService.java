@@ -244,9 +244,6 @@ public final class CodenamesGameService {
         state.setPhase(CodenamesPhase.GUESSING, team, server.getOverworld().getTime(), guessingDuration);
         state.unlockGuessingTimer();
         GameTimerSync.syncToAll(server);
-        broadcastActionBar(server, Text.literal("Ход отгадывающих команды ")
-                .append(Text.literal(teamDisplayPluralClean(team)).formatted(teamFormatting(team)))
-                .append(Text.literal(".")));
         TeamChats.getState(server).addMessage(new TeamChatMessage(
                 sender.getUuid(),
                 sender.getName().getString(),
@@ -653,8 +650,6 @@ public final class CodenamesGameService {
         syncTurnButtons(server);
         GameTimerSync.syncToAll(server);
         BoardSelectionSync.syncToAll(server);
-        broadcastActionBar(server, Text.literal("Ход команды: ")
-                .append(Text.literal(teamDisplayPluralClean(teamName)).formatted(teamFormatting(teamName))));
     }
 
     public static void broadcastActionBar(MinecraftServer server, Text message) {
