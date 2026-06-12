@@ -49,10 +49,10 @@ public class XodKomandProjectorEntityRenderer extends EntityRenderer<XodKomandPr
 
     private Text getText(TurnState state) {
         return switch (state) {
-            case RED_TEAM -> Text.literal("Ход: команды Красных");
-            case RED_LEADER -> Text.literal("Ход: лидера Красных");
-            case BLUE_TEAM -> Text.literal("Ход: команды Синих");
-            case BLUE_LEADER -> Text.literal("Ход: лидера Синих");
+            case RED_TEAM -> Text.literal("Ход команды Красных");
+            case RED_LEADER -> Text.literal("Ход лидера Красных");
+            case BLUE_TEAM -> Text.literal("Ход команды Синих");
+            case BLUE_LEADER -> Text.literal("Ход лидера Синих");
             case NONE -> Text.literal("Нет активного хода");
         };
     }

@@ -105,10 +105,10 @@ public final class TeamListHud {
                 int color;
 
                 if (red) {
-                    textStr = leaderPhase ? "Ход: лидера Красных" : "Ход: команды Красных";
+                    textStr = leaderPhase ? "Ход лидера Красных" : "Ход команды Красных";
                     color = 0xFFFF5555;
                 } else {
-                    textStr = leaderPhase ? "Ход: лидера  Синих" : "Ход: команды Синих";
+                    textStr = leaderPhase ? "Ход лидера  Синих" : "Ход команды Синих";
                     color = 0xFF55AAFF;
                 }
 
@@ -216,7 +216,7 @@ public final class TeamListHud {
             y += TeamScoreRenderData.LINE_HEIGHT;
         }
 
-        Text turnText = Text.literal("Ход: лидера Красных");
+        Text turnText = Text.literal("Ход лидера Красных");
         int turnWidth = textRenderer.getWidth(turnText) + 8;
         int turnY = top + layout.height() + 3;
         int turnHeight = 14;

@@ -44,10 +44,10 @@ public final class TurnHud {
         int color;
 
         if (red) {
-            textStr = leaderPhase ? "Ход: лидера Красных" : "Ход: команды Красных";
+            textStr = leaderPhase ? "Ход лидера Красных" : "Ход команды Красных";
             color = 0xFFFF5555;
         } else {
-            textStr = leaderPhase ? "Ход: лидера Синих" : "Ход: команды Синих";
+            textStr = leaderPhase ? "Ход лидера Синих" : "Ход команды Синих";
             color = 0xFF55AAFF;
         }
 

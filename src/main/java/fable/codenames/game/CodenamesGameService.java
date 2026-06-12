@@ -419,7 +419,7 @@ public final class CodenamesGameService {
         String clue = state.getClueWord().isEmpty() ? "-" : state.getClueWord() + " " + clueLabel(state.getClueCount());
         String dispute = state.getDisputeTeam().isEmpty() ? "" : " | спор: " + state.getDisputeTeam();
         return Text.literal("Игра: " + state.getPhase().getId()
-                + " | ход: " + emptyDash(state.getActiveTeam())
+                + " | Ход " + emptyDash(state.getActiveTeam())
                 + " | подсказка: " + clue
                 + dispute);
     }
