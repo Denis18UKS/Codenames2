@@ -401,13 +401,11 @@ public final class CodenamesGameService {
                 finishRound(server, opponentTeam, true);
                 return;
             }
-            broadcastActionBar(server, Text.literal("Это объект соперников. Ход переходит.").formatted(Formatting.RED));
             startCluePhase(server, opponentTeam);
             return;
         }
 
         playGlobalSound(server, net.minecraft.sound.SoundEvents.BLOCK_NOTE_BLOCK_BASS.value(), 10.0F, 0.0F);
-        broadcastActionBar(server, Text.literal("Нейтральный объект. Ход переходит.").formatted(Formatting.GRAY));
         startCluePhase(server, nextTeam(server, teamName));
     }
 
@@ -541,22 +539,12 @@ public final class CodenamesGameService {
 
         if (state.getPhase() == CodenamesPhase.WAITING_CLUE) {
             String nextTeam = nextTeam(server, state.getActiveTeam());
-            broadcastActionBar(server, Text.literal(
-                    "Время вышло. Ход переходит команде ")
-                    .formatted(Formatting.YELLOW)
-                    .append(Text.literal(teamDisplayPluralClean(nextTeam)).formatted(teamFormatting(nextTeam)))
-                    .append(Text.literal(".").formatted(Formatting.YELLOW)));
             startCluePhase(server, nextTeam);
         } else if (state.getPhase() == CodenamesPhase.GUESSING) {
             if (BoardSelectionState.getConfirmation(state.getActiveTeam()) != null) {
                 return;
             }
             String nextTeam = nextTeam(server, state.getActiveTeam());
-            broadcastActionBar(server, Text.literal(
-                    "Время вышло. Ход переходит команде ")
-                    .formatted(Formatting.YELLOW)
-                    .append(Text.literal(teamDisplayPluralClean(nextTeam)).formatted(teamFormatting(nextTeam)))
-                    .append(Text.literal(".").formatted(Formatting.YELLOW)));
             startCluePhase(server, nextTeam);
         }
     }
@@ -636,7 +624,7 @@ public final class CodenamesGameService {
         broadcastActionBar(server, Text.literal("! Оспаривание подтверждено командой ")
                 .append(Text.literal(teamDisplaySingularInstrumental(confirmingTeam))
                         .formatted(teamFormatting(confirmingTeam)))
-                .append(Text.literal(". Подсказка удалена, ход переходит.").formatted(Formatting.RED)));
+                .append(Text.literal(". Подсказка удалена.").formatted(Formatting.RED)));
         startCluePhase(server, nextTeam(server, activeTeam));
     }
 
