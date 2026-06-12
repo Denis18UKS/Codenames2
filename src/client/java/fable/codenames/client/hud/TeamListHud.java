@@ -105,10 +105,10 @@ public final class TeamListHud {
                 int color;
 
                 if (red) {
-                    textStr = leaderPhase ? "Ход лидера команды Красных" : "Ход команды Красных";
+                    textStr = leaderPhase ? "Ход команды: лидера Красных" : "Ход команды: Красных";
                     color = 0xFFFF5555;
                 } else {
-                    textStr = leaderPhase ? "Ход лидера команды Синих" : "Ход команды Синих";
+                    textStr = leaderPhase ? "Ход команды: лидера  Синих" : "Ход команды: Синих";
                     color = 0xFF55AAFF;
                 }
 
