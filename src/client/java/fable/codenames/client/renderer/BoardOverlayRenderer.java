@@ -14,6 +14,7 @@ import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.scoreboard.AbstractTeam;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
@@ -22,6 +23,7 @@ import net.minecraft.util.math.RotationAxis;
 import org.joml.Matrix4f;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public final class BoardOverlayRenderer {
@@ -72,10 +74,51 @@ public final class BoardOverlayRenderer {
 
         if (showVotes) {
             for (BoardClientState.VoteIndicator indicator : voteIndicators) {
-                drawVoteBadge(client, context, matrices, consumers, cameraPos, indicator);
+                if (canPlayerSeeVoteIndicator(player, indicator)) {
+                    drawVoteBadge(client, context, matrices, consumers, cameraPos, indicator);
+                }
             }
             consumers.draw();
         }
+    }
+
+    /**
+     * Проверяет, может ли игрок видеть индикатор голосования.
+     * Индикатор виден только отгадывающим своей команды.
+     * Лидеры не видят индикаторы своей команды.
+     * Игроки не видят индикаторы чужой команды.
+     */
+    private static boolean canPlayerSeeVoteIndicator(PlayerEntity player, BoardClientState.VoteIndicator indicator) {
+        AbstractTeam playerTeam = player.getScoreboardTeam();
+        if (playerTeam == null) {
+            return false;
+        }
+        
+        // Лидеры не видят индикаторы своей команды сквозь блоки
+        if (isPlayerLeader(player)) {
+            return false;
+        }
+        
+        String playerTeamName = playerTeam.getName().toLowerCase(Locale.ROOT);
+        String indicatorTeamName = indicator.teamName().toLowerCase(Locale.ROOT);
+        
+        boolean playerIsRed = playerTeamName.contains("red") || playerTeamName.contains("крас");
+        boolean playerIsBlue = playerTeamName.contains("blue") || playerTeamName.contains("син");
+        boolean indicatorIsRed = indicatorTeamName.contains("red") || indicatorTeamName.contains("крас");
+        boolean indicatorIsBlue = indicatorTeamName.contains("blue") || indicatorTeamName.contains("син");
+        
+        if (playerIsRed && indicatorIsRed) return true;
+        if (playerIsBlue && indicatorIsBlue) return true;
+        
+        return playerTeamName.equals(indicatorTeamName);
+    }
+
+    /**
+     * Проверяет, является ли игрок лидером.
+     * Лидеры имеют experienceLevel > 0 (используется для XP-бара).
+     */
+    private static boolean isPlayerLeader(PlayerEntity player) {
+        return player.experienceLevel > 0;
     }
 
     private static boolean isHoldingTool(PlayerEntity player) {
@@ -169,7 +212,7 @@ public final class BoardOverlayRenderer {
     }
 
     private static int teamColor(String teamName) {
-        String normalized = teamName.toLowerCase(java.util.Locale.ROOT);
+        String normalized = teamName.toLowerCase(Locale.ROOT);
         if (normalized.contains("blue") || normalized.contains("син")) {
             return 0xFF2563EB;
         }
@@ -194,19 +237,19 @@ public final class BoardOverlayRenderer {
         matrices.multiply(context.camera().getRotation());
         matrices.scale(-BADGE_SCALE, -BADGE_SCALE, BADGE_SCALE);
 
-        // 🔥 Фон рисуем НЕ see-through (не видно сквозь блоки)
-        drawBackground(matrices, vertexConsumers, width, height, teamColor(indicator.teamName()), false);
-        vertexConsumers.draw(RenderLayer.getTextBackground());
+        // Фон с SEE_THROUGH — видно своей команде сквозь блоки
+        drawBackground(matrices, vertexConsumers, width, height, teamColor(indicator.teamName()), true);
+        vertexConsumers.draw(RenderLayer.getTextBackgroundSeeThrough());
 
         matrices.translate(0.0F, 0.0F, -0.8F);
         int textX = (width - textRenderer.getWidth(text)) / 2;
         int textY = (height - 8) / 2;
         
-        // 🔥 Текст рисуем NORMAL (не видно сквозь блоки)
+        // Текст с SEE_THROUGH — видно своей команде сквозь блоки
         textRenderer.draw(text, textX + 1, textY + 1, 0xEE000000, false, matrices.peek().getPositionMatrix(),
-                vertexConsumers, TextRenderer.TextLayerType.NORMAL, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+                vertexConsumers, TextRenderer.TextLayerType.SEE_THROUGH, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
         textRenderer.draw(text, textX, textY, 0xFFFFFFFF, false, matrices.peek().getPositionMatrix(), vertexConsumers,
-                TextRenderer.TextLayerType.NORMAL, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+                TextRenderer.TextLayerType.SEE_THROUGH, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
 
         vertexConsumers.draw();
         matrices.pop();
