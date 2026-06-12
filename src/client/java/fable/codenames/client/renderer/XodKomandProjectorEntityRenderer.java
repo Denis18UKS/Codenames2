@@ -2,6 +2,7 @@ package fable.codenames.client.renderer;
 
 import fable.codenames.client.game.GameTimerClientState;
 import fable.codenames.entity.XodKomandProjectorEntity;
+import fable.codenames.game.CodenamesPhase;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.entity.EntityRenderer;
@@ -34,13 +35,14 @@ public class XodKomandProjectorEntityRenderer extends EntityRenderer<XodKomandPr
         }
 
         String team = GameTimerClientState.getTeamName().toLowerCase();
-        boolean leader = GameTimerClientState.canPassTurn();
+        CodenamesPhase phase = GameTimerClientState.getPhase();
+        boolean leaderPhase = (phase == CodenamesPhase.WAITING_CLUE);
 
         boolean red = team.contains("red") || team.contains("крас");
         boolean blue = team.contains("blue") || team.contains("син");
 
-        if (red) return leader ? TurnState.RED_LEADER : TurnState.RED_TEAM;
-        if (blue) return leader ? TurnState.BLUE_LEADER : TurnState.BLUE_TEAM;
+        if (red) return leaderPhase ? TurnState.RED_LEADER : TurnState.RED_TEAM;
+        if (blue) return leaderPhase ? TurnState.BLUE_LEADER : TurnState.BLUE_TEAM;
 
         return TurnState.NONE;
     }
@@ -48,9 +50,9 @@ public class XodKomandProjectorEntityRenderer extends EntityRenderer<XodKomandPr
     private Text getText(TurnState state) {
         return switch (state) {
             case RED_TEAM -> Text.literal("Ход команды Красных");
-            case RED_LEADER -> Text.literal("Ход лидера Красных");
+            case RED_LEADER -> Text.literal("Ход лидера команды Красных");
             case BLUE_TEAM -> Text.literal("Ход команды Синих");
-            case BLUE_LEADER -> Text.literal("Ход лидера Синих");
+            case BLUE_LEADER -> Text.literal("Ход лидера команды Синих");
             case NONE -> Text.literal("Нет активного хода");
         };
     }
@@ -79,10 +81,8 @@ public class XodKomandProjectorEntityRenderer extends EntityRenderer<XodKomandPr
 
         matrices.push();
 
-        // 📍 позиция
         matrices.translate(0.0, 1.2, 0.0);
 
-        // ✅ ВАЖНО: фиксированный поворот по yaw сущности
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-entity.getYaw()));
 
         float scale = 0.025f;

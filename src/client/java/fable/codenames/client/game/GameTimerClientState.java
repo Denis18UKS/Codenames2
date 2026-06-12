@@ -32,7 +32,6 @@ public final class GameTimerClientState {
 
         GameTimerClientState.canPassTurn = canPassTurn;
 
-        // 🔥 КЛЮЧ: фикс времени синхронизации
         GameTimerClientState.syncMillis = System.currentTimeMillis();
     }
 
@@ -49,13 +48,10 @@ public final class GameTimerClientState {
     }
 
     public static boolean isActive() {
-        // 🔥 FIX: теперь только active
         return active;
     }
 
     public static long getRemainingTicks() {
-
-        // ❗ ЕСЛИ ТАЙМЕР НЕ АКТИВЕН — НЕ УМЕНЬШАЕМ
         if (!active) {
             return remainingTicks;
         }

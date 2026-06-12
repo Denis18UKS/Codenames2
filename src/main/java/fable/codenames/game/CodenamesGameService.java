@@ -77,6 +77,8 @@ public final class CodenamesGameService {
     private static long customClueTicks = CLUE_TICKS;
     private static long customGuessingTicks = GUESSING_TICKS;
 
+    private static final Text PAUSE_MESSAGE = Text.literal("⏸ Игра на паузе! Используйте /codenames timer resume для продолжения.").formatted(Formatting.YELLOW);
+
     private CodenamesGameService() {
     }
 
@@ -195,6 +197,10 @@ public final class CodenamesGameService {
     }
 
     public static boolean canPlayerSelect(ServerPlayerEntity player) {
+        if (timerPaused) {
+            player.sendMessage(PAUSE_MESSAGE, true);
+            return false;
+        }
         if (pausedForMissingPlayers) {
             return false;
         }
@@ -207,6 +213,10 @@ public final class CodenamesGameService {
     }
 
     public static boolean tryAcceptClue(MinecraftServer server, ServerPlayerEntity sender, String rawMessage) {
+        if (timerPaused) {
+            sender.sendMessage(PAUSE_MESSAGE, false);
+            return true;
+        }
         if (pausedForMissingPlayers) {
             return false;
         }
@@ -252,6 +262,10 @@ public final class CodenamesGameService {
         if (server == null) {
             return false;
         }
+        if (timerPaused) {
+            player.sendMessage(PAUSE_MESSAGE, true);
+            return false;
+        }
         if (Roles.getState(server).getRole(player.getUuid()) != PlayerRole.LIDER) {
             return true;
         }
@@ -266,6 +280,9 @@ public final class CodenamesGameService {
         if (server == null) {
             return false;
         }
+        if (timerPaused) {
+            return false;
+        }
         CodenamesGameState state = CodenamesGames.getState(server);
         String playerTeam = TeamService.getTeamName(player);
         return state.getPhase() == CodenamesPhase.WAITING_CLUE
@@ -273,6 +290,10 @@ public final class CodenamesGameService {
     }
 
     public static void disputeClue(MinecraftServer server, ServerPlayerEntity player) {
+        if (timerPaused) {
+            player.sendMessage(PAUSE_MESSAGE, false);
+            return;
+        }
         if (pausedForMissingPlayers) {
             return;
         }
@@ -314,6 +335,10 @@ public final class CodenamesGameService {
     }
 
     public static void confirmSelection(MinecraftServer server, String teamName, BlockPos pos) {
+        if (timerPaused) {
+            broadcastActionBar(server, PAUSE_MESSAGE);
+            return;
+        }
         if (pausedForMissingPlayers) {
             return;
         }
@@ -392,6 +417,9 @@ public final class CodenamesGameService {
     }
 
     public static Text validateNextTurn(MinecraftServer server) {
+        if (timerPaused) {
+            return PAUSE_MESSAGE;
+        }
         CodenamesGameState state = CodenamesGames.getState(server);
         if (state.getPhase() == CodenamesPhase.STOPPED || state.getPhase() == CodenamesPhase.FINISHED) {
             return Text.literal("Игра сейчас не идет.");
@@ -412,6 +440,10 @@ public final class CodenamesGameService {
     }
 
     public static boolean nextTurn(MinecraftServer server) {
+        if (timerPaused) {
+            broadcastActionBar(server, PAUSE_MESSAGE);
+            return false;
+        }
         if (pausedForMissingPlayers) {
             return false;
         }
@@ -425,6 +457,10 @@ public final class CodenamesGameService {
     }
 
     public static boolean tryPassTurn(MinecraftServer server, ServerPlayerEntity player) {
+        if (timerPaused) {
+            player.sendMessage(PAUSE_MESSAGE, true);
+            return false;
+        }
         if (pausedForMissingPlayers) {
             return false;
         }
@@ -478,6 +514,11 @@ public final class CodenamesGameService {
             broadcastActionBar(server, Text.literal("Оспаривание подсказки истекло. Подсказка считается принятой.")
                     .formatted(Formatting.YELLOW));
             state.clearDispute();
+        }
+
+        // Если таймер на паузе, не проверяем окончание фазы
+        if (timerPaused) {
+            return;
         }
 
         if (state.getPhase() == CodenamesPhase.STOPPED || state.getPhase() == CodenamesPhase.FINISHED

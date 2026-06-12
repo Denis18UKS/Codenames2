@@ -50,7 +50,6 @@ public final class TeamListHud {
         int left = TeamHudState.getX();
         int top = TeamHudState.getY();
 
-        // Основная плашка счета
         drawContext.fill(
                 left,
                 top,
@@ -93,9 +92,6 @@ public final class TeamListHud {
             y += TeamScoreRenderData.LINE_HEIGHT;
         }
 
-        // ===================================================
-        // Индикатор хода, прикрепленный к нижней части HUD
-        // ===================================================
         if (GameTimerClientState.isActive()) {
             String team = GameTimerClientState.getTeamName().toLowerCase();
             CodenamesPhase phase = GameTimerClientState.getPhase();
@@ -220,7 +216,7 @@ public final class TeamListHud {
             y += TeamScoreRenderData.LINE_HEIGHT;
         }
 
-        Text turnText = Text.literal("Ход команды Красных");
+        Text turnText = Text.literal("Ход лидера команды Красных");
         int turnWidth = textRenderer.getWidth(turnText) + 8;
         int turnY = top + layout.height() + 3;
         int turnHeight = 14;

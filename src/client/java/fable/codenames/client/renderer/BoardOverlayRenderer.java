@@ -194,16 +194,19 @@ public final class BoardOverlayRenderer {
         matrices.multiply(context.camera().getRotation());
         matrices.scale(-BADGE_SCALE, -BADGE_SCALE, BADGE_SCALE);
 
-        drawBackground(matrices, vertexConsumers, width, height, teamColor(indicator.teamName()), true);
-        vertexConsumers.draw(RenderLayer.getTextBackgroundSeeThrough());
+        // 🔥 Фон рисуем НЕ see-through (не видно сквозь блоки)
+        drawBackground(matrices, vertexConsumers, width, height, teamColor(indicator.teamName()), false);
+        vertexConsumers.draw(RenderLayer.getTextBackground());
 
         matrices.translate(0.0F, 0.0F, -0.8F);
         int textX = (width - textRenderer.getWidth(text)) / 2;
         int textY = (height - 8) / 2;
+        
+        // 🔥 Текст рисуем NORMAL (не видно сквозь блоки)
         textRenderer.draw(text, textX + 1, textY + 1, 0xEE000000, false, matrices.peek().getPositionMatrix(),
-                vertexConsumers, TextRenderer.TextLayerType.SEE_THROUGH, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+                vertexConsumers, TextRenderer.TextLayerType.NORMAL, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
         textRenderer.draw(text, textX, textY, 0xFFFFFFFF, false, matrices.peek().getPositionMatrix(), vertexConsumers,
-                TextRenderer.TextLayerType.SEE_THROUGH, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+                TextRenderer.TextLayerType.NORMAL, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
 
         vertexConsumers.draw();
         matrices.pop();

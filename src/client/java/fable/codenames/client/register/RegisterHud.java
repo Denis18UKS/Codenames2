@@ -8,5 +8,6 @@ public class RegisterHud {
     public static void init() {
         TeamListHud.init();
         GameTimerHud.init();
+        TurnHud.init();
     }
 }

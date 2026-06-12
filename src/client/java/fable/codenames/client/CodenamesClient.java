@@ -24,31 +24,20 @@ public class CodenamesClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
 
-        // =========================
-        // FORCE UNICODE SETTING
-        // =========================
         MinecraftClient client = MinecraftClient.getInstance();
 
         if (client != null && client.options != null) {
-
             client.options
                     .getForceUnicodeFont()
                     .setValue(UnicodeConfig.UNICODE_GLOBAL);
-
             client.options.write();
         }
 
-        // =========================
-        // BLOCK RENDER LAYERS
-        // =========================
         BlockRenderLayerMap.INSTANCE.putBlocks(
                 RenderLayer.getCutout(),
                 HeadBlocks.getBlocks().values().toArray(Block[]::new)
         );
 
-        // =========================
-        // CLIENT SYSTEMS
-        // =========================
         TeamChatTextLayout.load();
 
         RegisterClientCommands.init();
