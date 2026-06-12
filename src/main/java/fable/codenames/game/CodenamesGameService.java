@@ -78,6 +78,7 @@ public final class CodenamesGameService {
     private static long customGuessingTicks = GUESSING_TICKS;
 
     private static final Text PAUSE_MESSAGE = Text.literal("⏸ Игра на паузе! Используйте /codenames timer resume для продолжения.").formatted(Formatting.YELLOW);
+    private static final Text PAUSE_CHAT_MESSAGE = Text.literal("⏸ Игра на паузе! Невозможно выбрать объект. Используйте /codenames timer resume для продолжения.").formatted(Formatting.YELLOW);
 
     private CodenamesGameService() {
     }
@@ -198,7 +199,6 @@ public final class CodenamesGameService {
 
     public static boolean canPlayerSelect(ServerPlayerEntity player) {
         if (timerPaused) {
-            player.sendMessage(PAUSE_MESSAGE, true);
             return false;
         }
         if (pausedForMissingPlayers) {
@@ -337,6 +337,14 @@ public final class CodenamesGameService {
     public static void confirmSelection(MinecraftServer server, String teamName, BlockPos pos) {
         if (timerPaused) {
             broadcastActionBar(server, PAUSE_MESSAGE);
+            // Отправляем сообщение в чат всем игрокам активной команды
+            for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
+                if (samePlayableTeam(TeamService.getTeamName(player), teamName)) {
+                    player.sendMessage(PAUSE_CHAT_MESSAGE, false);
+                }
+            }
+            BoardSelectionState.clearVotesForTeam(teamName);
+            BoardSelectionSync.syncToAll(server);
             return;
         }
         if (pausedForMissingPlayers) {
@@ -499,12 +507,17 @@ public final class CodenamesGameService {
             TeleportPointService.teleportAllToLobby(server);
             giveRuleBooks(server);
         }
-        if (handleMissingPlayersPause(server, state, now)) {
-            if (now % 5L == 0L) {
-                GameTimerSync.syncToAll(server);
+        
+        // Обработка автопаузы (нехватка игроков) — работает только если нет ручной паузы
+        if (!timerPaused) {
+            if (handleMissingPlayersPause(server, state, now)) {
+                if (now % 5L == 0L) {
+                    GameTimerSync.syncToAll(server);
+                }
+                return;
             }
-            return;
         }
+        
         if (now % 5L == 0L) {
             GameTimerSync.syncToAll(server);
         }
@@ -575,6 +588,11 @@ public final class CodenamesGameService {
 
         if (!pausedForMissingPlayers) {
             return false;
+        }
+
+        // Не возобновляем если ручная пауза активна
+        if (timerPaused) {
+            return true;
         }
 
         if (resumeAfterPlayersReadyTick < 0L) {
@@ -1136,6 +1154,12 @@ public final class CodenamesGameService {
     public static boolean resumeTimer(MinecraftServer server) {
         CodenamesGameState state = CodenamesGames.getState(server);
         if (state.getPhase() == CodenamesPhase.STOPPED || state.getPhase() == CodenamesPhase.FINISHED) {
+            return false;
+        }
+        
+        // Проверяем, хватает ли игроков для продолжения
+        if (!RoleValidation.canStart(server)) {
+            broadcastActionBar(server, Text.literal("⏸ Невозможно снять паузу: не хватает игроков.").formatted(Formatting.RED));
             return false;
         }
         
