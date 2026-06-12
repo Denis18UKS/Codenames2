@@ -8,6 +8,10 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
 
 public final class TurnHud {
+    
+    private static final int HUD_WIDTH = 120;
+    private static final int HUD_HEIGHT = 14;
+    
     private TurnHud() {}
 
     public static void init() {
@@ -40,19 +44,26 @@ public final class TurnHud {
         int color;
 
         if (red) {
-            textStr = leaderPhase ? "Ход: лидера команды: Красных" : "Ход команды: Красных";
+            textStr = leaderPhase ? "Ход: лидера Красных" : "Ход: команды Красных";
             color = 0xFFFF5555;
         } else {
-            textStr = leaderPhase ? "Ход: лидера команды: Синих" : "Ход команды: Синих";
+            textStr = leaderPhase ? "Ход: лидера Синих" : "Ход: команды Синих";
             color = 0xFF55AAFF;
         }
 
+        // Плашка шириной 120px, прижата к верху по центру
+        int x = (context.getScaledWindowWidth() - HUD_WIDTH) / 2;
+        int y = 0;
+
+        // Фон плашки
+        context.fill(x, y, x + HUD_WIDTH, y + HUD_HEIGHT, 0x80000000);
+        
+        // Текст по центру плашки
         Text text = Text.literal(textStr);
         int textWidth = client.textRenderer.getWidth(text);
-        int x = (context.getScaledWindowWidth() - textWidth) / 2;
-        int y = 5;
-
-        context.fill(x - 6, y - 4, x + textWidth + 6, y + 11, 0x80000000);
-        context.drawTextWithShadow(client.textRenderer, text, x, y, color);
+        int textX = x + (HUD_WIDTH - textWidth) / 2;
+        int textY = y + (HUD_HEIGHT - client.textRenderer.fontHeight) / 2;
+        
+        context.drawTextWithShadow(client.textRenderer, text, textX, textY, color);
     }
 }
