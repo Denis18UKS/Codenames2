@@ -333,7 +333,7 @@ public final class CodenamesGameService {
 
     public static void confirmSelection(MinecraftServer server, String teamName, BlockPos pos) {
         if (timerPaused) {
-            broadcastActionBar(server, PAUSE_MESSAGE);
+            server.getPlayerManager().broadcast(PAUSE_MESSAGE, false);
             // Отправляем сообщение в чат всем игрокам активной команды
             for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
                 if (samePlayableTeam(TeamService.getTeamName(player), teamName)) {
@@ -375,9 +375,9 @@ public final class CodenamesGameService {
 
         if (selected == BoardCellType.ASSASSIN) {
             playGlobalSound(server, net.minecraft.sound.SoundEvents.BLOCK_BEACON_DEACTIVATE, 10.0F, 1.0F);
-            broadcastActionBar(server, Text.literal("Команда ").formatted(Formatting.DARK_RED)
+            server.getPlayerManager().broadcast(Text.literal("Команда ").formatted(Formatting.DARK_RED)
                     .append(Text.literal(teamDisplayPluralClean(teamName)).formatted(teamFormatting(teamName)))
-                    .append(Text.literal(" открыла запрещённый объект и проиграла").formatted(Formatting.DARK_RED)));
+                    .append(Text.literal(" открыла запрещённый объект и проиграла").formatted(Formatting.DARK_RED)), false);
             finishRound(server, teamName, false);
             return;
         }
@@ -444,7 +444,7 @@ public final class CodenamesGameService {
 
     public static boolean nextTurn(MinecraftServer server) {
         if (timerPaused) {
-            broadcastActionBar(server, PAUSE_MESSAGE);
+            server.getPlayerManager().broadcast(PAUSE_MESSAGE, false);
             return false;
         }
         if (pausedForMissingPlayers) {
@@ -519,8 +519,8 @@ public final class CodenamesGameService {
         syncVanillaTimerBar(server, state, now);
 
         if (!state.getDisputeTeam().isEmpty() && state.getDisputeEndTick() > 0 && now >= state.getDisputeEndTick()) {
-            broadcastActionBar(server, Text.literal("Оспаривание подсказки истекло. Подсказка считается принятой.")
-                    .formatted(Formatting.YELLOW));
+            server.getPlayerManager().broadcast(Text.literal("Оспаривание подсказки истекло. Подсказка считается принятой.")
+                    .formatted(Formatting.YELLOW), false);
             state.clearDispute();
         }
 
@@ -563,9 +563,9 @@ public final class CodenamesGameService {
                 pausedRemainingTicks = Math.max(1L, state.getPhaseEndTick() - now);
                 resumeAfterPlayersReadyTick = -1L;
                 GameTimerSync.syncToAll(server);
-                broadcastActionBar(server, Text.literal(
+                server.getPlayerManager().broadcast(Text.literal(
                         "Игра поставлена на паузу: не хватает игроков.")
-                        .formatted(Formatting.YELLOW));
+                        .formatted(Formatting.YELLOW), false);
             }
             state.resetPhaseTimer(now, pausedRemainingTicks);
             return true;
@@ -582,9 +582,9 @@ public final class CodenamesGameService {
 
         if (resumeAfterPlayersReadyTick < 0L) {
             resumeAfterPlayersReadyTick = now + PLAYER_RESUME_DELAY_TICKS;
-            broadcastActionBar(server, Text.literal(
+            server.getPlayerManager().broadcast(Text.literal(
                     "Игроки вернулись. Игра продолжится через 5 секунд.")
-                    .formatted(Formatting.GREEN));
+                    .formatted(Formatting.GREEN), false);
         }
 
         if (now < resumeAfterPlayersReadyTick) {
@@ -595,9 +595,9 @@ public final class CodenamesGameService {
         state.resetPhaseTimer(now, pausedRemainingTicks);
         clearMissingPlayersPause();
         GameTimerSync.syncToAll(server);
-        broadcastActionBar(server,
+        server.getPlayerManager().broadcast(
                 Text.literal("Игра продолжена.")
-                        .formatted(Formatting.GREEN));
+                        .formatted(Formatting.GREEN), false);
         return false;
     }
 
@@ -621,10 +621,10 @@ public final class CodenamesGameService {
         String content = state.getClueWord() + " " + clueLabel(state.getClueCount());
         TeamChats.getState(server).removeLatestMessage(activeTeam, content);
         TeamChatSync.syncAll(server);
-        broadcastActionBar(server, Text.literal("! Оспаривание подтверждено командой ")
+        server.getPlayerManager().broadcast(Text.literal("! Оспаривание подтверждено командой ")
                 .append(Text.literal(teamDisplaySingularInstrumental(confirmingTeam))
                         .formatted(teamFormatting(confirmingTeam)))
-                .append(Text.literal(". Подсказка удалена.").formatted(Formatting.RED)));
+                .append(Text.literal(". Подсказка удалена.").formatted(Formatting.RED)), false);
         startCluePhase(server, nextTeam(server, activeTeam));
     }
 
@@ -1128,7 +1128,7 @@ public final class CodenamesGameService {
             state.setPhase(state.getPhase(), state.getActiveTeam(), now, Long.MAX_VALUE - now);
             GameTimerSync.syncToAll(server);
             
-            broadcastActionBar(server, Text.literal("⏸ Таймер поставлен на паузу.").formatted(Formatting.YELLOW));
+            server.getPlayerManager().broadcast(Text.literal("⏸ Таймер поставлен на паузу.").formatted(Formatting.YELLOW), false);
             return true;
         }
         return false;
@@ -1142,7 +1142,7 @@ public final class CodenamesGameService {
         
         // Проверяем, хватает ли игроков для продолжения
         if (!RoleValidation.canStart(server)) {
-            broadcastActionBar(server, Text.literal("⏸ Невозможно снять паузу: не хватает игроков.").formatted(Formatting.RED));
+            server.getPlayerManager().broadcast(Text.literal("⏸ Невозможно снять паузу: не хватает игроков.").formatted(Formatting.RED), false);
             return false;
         }
         
@@ -1153,7 +1153,7 @@ public final class CodenamesGameService {
             timerPausedRemaining = 0L;
             
             GameTimerSync.syncToAll(server);
-            broadcastActionBar(server, Text.literal("▶ Таймер возобновлён.").formatted(Formatting.GREEN));
+            server.getPlayerManager().broadcast(Text.literal("▶ Таймер возобновлён.").formatted(Formatting.GREEN), false);
             return true;
         }
         return false;
@@ -1172,7 +1172,7 @@ public final class CodenamesGameService {
         state.setPhase(state.getPhase(), state.getActiveTeam(), now, newRemaining);
         GameTimerSync.syncToAll(server);
         
-        broadcastActionBar(server, Text.literal("⏱ Добавлено " + seconds + " сек. к таймеру.").formatted(Formatting.GREEN));
+        server.getPlayerManager().broadcast(Text.literal("⏱ Добавлено " + seconds + " сек. к таймеру.").formatted(Formatting.GREEN), false);
         return true;
     }
 
@@ -1189,7 +1189,7 @@ public final class CodenamesGameService {
         state.setPhase(state.getPhase(), state.getActiveTeam(), now, newRemaining);
         GameTimerSync.syncToAll(server);
         
-        broadcastActionBar(server, Text.literal("⏱ Убрано " + seconds + " сек. с таймера.").formatted(Formatting.RED));
+        server.getPlayerManager().broadcast(Text.literal("⏱ Убрано " + seconds + " сек. с таймера.").formatted(Formatting.RED), false);
         return true;
     }
 
