@@ -29,22 +29,24 @@ public class InGameHudMixin {
     private static final Identifier XP_FILL_RED =
             Identifier.of("codenames", "textures/gui/xp_bar_red.png");
 
-    // Отключаем стандартные HP/голод/броню
+    // ❌ Полностью убираем ванильные бары
     @Inject(method = "renderStatusBars", at = @At("HEAD"), cancellable = true)
     private void codenames$hideStatusBars(DrawContext context, CallbackInfo ci) {
         ci.cancel();
     }
 
-    // Отключаем стандартный XP bar и рисуем свой
+    // ❌ Убираем ванильный XP бар
     @Inject(method = "renderExperienceBar", at = @At("HEAD"), cancellable = true)
-    private void codenames$renderCustomXpBar(DrawContext context, int x, CallbackInfo ci) {
+    private void codenames$cancelVanillaXp(DrawContext context, int x, CallbackInfo ci) {
+        ci.cancel();
+    }
+
+    // ✅ Рисуем СВОЙ XP бар в render()
+    @Inject(method = "render", at = @At("TAIL"))
+    private void codenames$renderCustom(DrawContext context, float tickDelta, CallbackInfo ci) {
         MinecraftClient client = MinecraftClient.getInstance();
 
-        if (client.player == null || client.interactionManager == null) {
-            return;
-        }
-
-        ci.cancel();
+        if (client.player == null || client.interactionManager == null) return;
 
         PlayerEntity player = client.player;
 
@@ -52,17 +54,19 @@ public class InGameHudMixin {
         int barHeight = 5;
 
         int barX = (context.getScaledWindowWidth() - barWidth) / 2;
-        int barY = context.getScaledWindowHeight() - 32 + 3;
+        int barY = context.getScaledWindowHeight() - 29;
 
-        int progress = (int) (player.experienceProgress * (float) barWidth);
+        int progress = (int) (player.experienceProgress * barWidth);
         progress = Math.max(0, Math.min(progress, barWidth));
 
         Identifier fillTexture = isBlueTeam() ? XP_FILL_BLUE : XP_FILL_RED;
 
-        // Включаем блендинг для правильной прозрачности
+        // 🔧 СТАБИЛИЗАЦИЯ РЕНДЕРА (ключ к устранению мигания)
         RenderSystem.enableBlend();
-        
-        // Рисуем пустой фон
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+
+        // фон
         context.drawTexture(
                 XP_EMPTY,
                 barX,
@@ -75,7 +79,7 @@ public class InGameHudMixin {
                 barHeight
         );
 
-        // Рисуем заполнение
+        // заполнение
         if (progress > 0) {
             context.drawTexture(
                     fillTexture,
@@ -90,13 +94,13 @@ public class InGameHudMixin {
             );
         }
 
-        // Рисуем уровень
+        // уровень
         if (player.experienceLevel > 0) {
             String levelText = String.valueOf(player.experienceLevel);
+
             int textX = (context.getScaledWindowWidth() - client.textRenderer.getWidth(levelText)) / 2;
             int textY = barY - 10;
 
-            // Рисуем тень для читаемости
             context.drawText(
                     client.textRenderer,
                     levelText,
@@ -105,8 +109,7 @@ public class InGameHudMixin {
                     0x40000000,
                     false
             );
-            
-            // Рисуем сам текст
+
             context.drawText(
                     client.textRenderer,
                     levelText,
@@ -117,34 +120,34 @@ public class InGameHudMixin {
             );
         }
 
+        // 🔧 ВОССТАНОВЛЕНИЕ состояния (очень важно)
         RenderSystem.disableBlend();
     }
 
-    // Отключаем мигание оверлея (таб и ники)
+    // ❌ УБИРАЕМ проблемные overlay (вот тут реально фикс мигания)
     @Inject(method = "renderOverlay", at = @At("HEAD"), cancellable = true)
-    private void codenames$disableOverlayFlash(DrawContext context, Identifier texture, float opacity, CallbackInfo ci) {
-        // Отключаем мигание PumpkinBlur, PowderSnow, Spyglass, Vignette
-        if (texture.getPath().contains("pumpkinblur") 
-                || texture.getPath().contains("powder_snow") 
-                || texture.getPath().contains("spyglass")
-                || texture.getPath().contains("vignette")) {
-            return; // Оставляем как есть
+    private void codenames$removeBadOverlay(DrawContext context, Identifier texture, float opacity, CallbackInfo ci) {
+
+        String path = texture.getPath();
+
+        // убираем именно те, которые вызывают flicker
+        if (path.contains("vignette")
+                || path.contains("powder_snow")
+                || path.contains("pumpkinblur")
+                || path.contains("spyglass")) {
+
+            ci.cancel(); // <-- ВАЖНО (у тебя этого не было)
         }
-        // Не отменяем другие оверлеи, чтобы не сломать остальной HUD
     }
 
     private static boolean isBlueTeam() {
         MinecraftClient client = MinecraftClient.getInstance();
 
-        if (client.player == null) {
-            return false;
-        }
+        if (client.player == null) return false;
 
         AbstractTeam abstractTeam = client.player.getScoreboardTeam();
 
-        if (!(abstractTeam instanceof Team team)) {
-            return false;
-        }
+        if (!(abstractTeam instanceof Team team)) return false;
 
         String teamName = team.getName().toLowerCase(Locale.ROOT);
         Formatting formatting = team.getColor();
