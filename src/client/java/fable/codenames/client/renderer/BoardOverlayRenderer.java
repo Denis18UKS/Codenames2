@@ -153,26 +153,28 @@ public final class BoardOverlayRenderer {
 
             switch (face) {
                 case DOWN -> {
-                    matrices.translate(0, 0, 1);
+                    matrices.translate(0, -0.002, 1);
                     matrices.multiply(RotationAxis.NEGATIVE_X.rotationDegrees(90));
                 }
                 case UP -> {
-                    matrices.translate(0, 1, 0);
+                    matrices.translate(0, 1.002, 0);
                     matrices.multiply(RotationAxis.POSITIVE_X.rotationDegrees(90));
                 }
                 case SOUTH -> {
-                    matrices.translate(1, 0, 1);
+                    matrices.translate(1, 0, 1.002);
                     matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180));
                 }
                 case WEST -> {
-                    matrices.translate(0, 0, 1);
+                    matrices.translate(-0.002, 0, 1);
                     matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(90));
                 }
                 case EAST -> {
-                    matrices.translate(1, 0, 0);
+                    matrices.translate(1.002, 0, 0);
                     matrices.multiply(RotationAxis.NEGATIVE_Y.rotationDegrees(90));
                 }
-                default -> {}
+                case NORTH -> {
+                    matrices.translate(0, 0, -0.002);
+                }
             }
 
             drawFaceOverlayQuads(matrices, quads, thickness, red, green, blue);
