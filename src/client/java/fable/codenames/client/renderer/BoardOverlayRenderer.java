@@ -25,12 +25,11 @@ import java.util.Map;
 
 public final class BoardOverlayRenderer {
     private static final float BADGE_SCALE = 0.014F;
-    // Константа для второй фазы рендера (AFTER_TRANSLUCENT) 
-    // чтобы точно быть поверх всего после Sodium
     private static final RenderLayer OVERLAY_LINES = RenderLayer.getLines();
-    private static final RenderLayer OVERLAY_QUADS = RenderLayer.getDebugQuads();
-    
-    // Правильный способ получить RenderLayer для текста с SEE_THROUGH в 1.20.1
+
+    // Заменяем RenderLayer.getDebugQuads() на полностью совместимый с шейдерами getLightning()
+    private static final RenderLayer OVERLAY_QUADS = RenderLayer.getLightning();
+
     private static final RenderLayer TEXT_SEE_THROUGH = RenderLayer.getTextSeeThrough(new Identifier("codenames", "text/see_through"));
 
     private BoardOverlayRenderer() {
@@ -42,31 +41,27 @@ public final class BoardOverlayRenderer {
         Map<BlockPos, BoardCellType> cells = BoardClientState.getCells();
         List<BoardClientState.VoteIndicator> voteIndicators = BoardClientState.getVoteIndicators();
         MatrixStack matrices = context.matrixStack();
-        
+
         if (player == null || matrices == null) {
             return;
         }
 
         Vec3d cameraPos = context.camera().getPos();
-        
-        // Используем провайдер буферов напрямую, но с правильным порядком отрисовки
         VertexConsumerProvider.Immediate consumers = client.getBufferBuilders().getEntityVertexConsumers();
-        
+
         boolean showCells = !cells.isEmpty() && (isHoldingTool(player) || BoardClientState.canSeeAnswers());
         boolean showVotes = !voteIndicators.isEmpty();
-        
+
         if (!showCells && !showVotes) {
             return;
         }
 
-        // РИСУЕМ ЯЧЕЙКИ СНАЧАЛА
         if (showCells) {
             matrices.push();
-            
-            // Получаем буферы ДО отрисовки
+
             VertexConsumer lines = consumers.getBuffer(OVERLAY_LINES);
             VertexConsumer quads = consumers.getBuffer(OVERLAY_QUADS);
-            
+
             for (Map.Entry<BlockPos, BoardCellType> entry : cells.entrySet()) {
                 if (entry.getValue() == BoardCellType.UNASSIGNED) {
                     continue;
@@ -77,78 +72,61 @@ public final class BoardOverlayRenderer {
                 float green = ((color >> 8) & 255) / 255.0F;
                 float blue = (color & 255) / 255.0F;
 
-                // Рисуем основную рамку
                 drawThickInsideBox(matrices, quads, entry.getKey(), cameraPos, red, green, blue, cells);
-                
-                // Рисуем дополнительные линии для нейтральных ячеек
+
                 if (entry.getValue() == BoardCellType.NEUTRAL) {
                     drawNeutralExtraInsideBox(matrices, lines, entry.getKey(), cameraPos, red, green, blue);
                 }
             }
-            
+
             matrices.pop();
-            
-            // ВАЖНО: Рисуем quads ПЕРЕД lines
+
             consumers.draw(OVERLAY_QUADS);
             consumers.draw(OVERLAY_LINES);
         }
 
-        // РИСУЕМ ИНДИКАТОРЫ ГОЛОСОВАНИЯ ОТДЕЛЬНО
         if (showVotes) {
             matrices.push();
-            
+
             for (BoardClientState.VoteIndicator indicator : voteIndicators) {
                 if (canPlayerSeeVoteIndicator(player, indicator)) {
                     drawVoteBadge(client, context, matrices, consumers, cameraPos, indicator);
                 }
             }
-            
+
             matrices.pop();
-            
-            // Рисуем текст и бейджи в правильном порядке
+
             consumers.draw(RenderLayer.getTextBackgroundSeeThrough());
             consumers.draw(TEXT_SEE_THROUGH);
         }
-        
-        // Финальная отрисовка всех оставшихся буферов
+
         consumers.draw();
     }
 
-    /**
-     * Проверяет, может ли игрок видеть индикатор голосования.
-     * Индикатор виден только отгадывающим своей команды.
-     * Лидеры не видят индикаторы своей команды.
-     * Игроки не видят индикаторы чужой команды.
-     */
     private static boolean canPlayerSeeVoteIndicator(PlayerEntity player, BoardClientState.VoteIndicator indicator) {
         AbstractTeam playerTeam = player.getScoreboardTeam();
         if (playerTeam == null) {
             return false;
         }
-        
-        // Лидеры не видят индикаторы своей команды сквозь блоки
+
         if (isPlayerLeader(player)) {
             return false;
         }
-        
+
         String playerTeamName = playerTeam.getName().toLowerCase(Locale.ROOT);
         String indicatorTeamName = indicator.teamName().toLowerCase(Locale.ROOT);
-        
+
         boolean playerIsRed = playerTeamName.contains("red") || playerTeamName.contains("крас");
         boolean playerIsBlue = playerTeamName.contains("blue") || playerTeamName.contains("син");
         boolean indicatorIsRed = indicatorTeamName.contains("red") || indicatorTeamName.contains("крас");
         boolean indicatorIsBlue = indicatorTeamName.contains("blue") || indicatorTeamName.contains("син");
-        
+
         if (playerIsRed && indicatorIsRed) return true;
         if (playerIsBlue && indicatorIsBlue) return true;
-        
+
         return playerTeamName.equals(indicatorTeamName);
     }
 
-    /**
-     * Проверяет, является ли игрок лидером.
-     * Лидеры имеют experienceLevel > 0 (используется для XP-бара).
-     */
     private static boolean isPlayerLeader(PlayerEntity player) {
         return player.experienceLevel > 0;
     }
@@ -157,9 +135,9 @@ public final class BoardOverlayRenderer {
         return isConfigurator(player.getMainHandStack()) || isConfigurator(player.getOffHandStack());
     }
 
-    private static void drawThickInsideBox(MatrixStack matrices, VertexConsumer quads, BlockPos pos, 
-                                          Vec3d cameraPos, float red, float green, float blue, 
-                                          Map<BlockPos, BoardCellType> cells) {
+    private static void drawThickInsideBox(MatrixStack matrices, VertexConsumer quads, BlockPos pos,
+                                           Vec3d cameraPos, float red, float green, float blue,
+                                           Map<BlockPos, BoardCellType> cells) {
         matrices.push();
         matrices.translate(-cameraPos.x, -cameraPos.y, -cameraPos.z);
         matrices.translate(pos.getX(), pos.getY(), pos.getZ());
@@ -173,7 +151,6 @@ public final class BoardOverlayRenderer {
 
             matrices.push();
 
-            // Трансформация для каждой грани
             switch (face) {
                 case DOWN -> {
                     matrices.translate(0, 0, 1);
@@ -198,7 +175,6 @@ public final class BoardOverlayRenderer {
                 default -> {}
             }
 
-            // Рисуем грани в quads (DebugQuads) для лучшей видимости с Sodium
             drawFaceOverlayQuads(matrices, quads, thickness, red, green, blue);
 
             matrices.pop();
@@ -225,42 +201,30 @@ public final class BoardOverlayRenderer {
         return Integer.compare(a.getX(), b.getX());
     }
 
-    /**
-     * Рисует перекрытие граней используя quads (DebugQuads буфер)
-     * Это более совместимо с Sodium, чем смешанное использование линий и quads
-     */
-    private static void drawFaceOverlayQuads(MatrixStack matrices, VertexConsumer consumer, 
-                                            float thickness, float red, float green, float blue) {
+    private static void drawFaceOverlayQuads(MatrixStack matrices, VertexConsumer consumer,
+                                             float thickness, float red, float green, float blue) {
         Matrix4f matrix = matrices.peek().getPositionMatrix();
         float alpha = 1.0f;
-        int light = LightmapTextureManager.MAX_LIGHT_COORDINATE;
-        
-        // Рисуем тонкую рамку используя quads (альтернатива drawBox)
-        // Каждая линия - это прямоугольник заданной толщины
-        
-        // Нижняя линия (y = 0, от x=0 до x=1)
-        consumer.vertex(matrix, 0, 0, 0).color(red, green, blue, alpha).light(light).next();
-        consumer.vertex(matrix, 1, 0, 0).color(red, green, blue, alpha).light(light).next();
-        consumer.vertex(matrix, 1, thickness, 0).color(red, green, blue, alpha).light(light).next();
-        consumer.vertex(matrix, 0, thickness, 0).color(red, green, blue, alpha).light(light).next();
-        
-        // Верхняя линия (y = 1, от x=0 до x=1)
-        consumer.vertex(matrix, 0, 1-thickness, 0).color(red, green, blue, alpha).light(light).next();
-        consumer.vertex(matrix, 1, 1-thickness, 0).color(red, green, blue, alpha).light(light).next();
-        consumer.vertex(matrix, 1, 1, 0).color(red, green, blue, alpha).light(light).next();
-        consumer.vertex(matrix, 0, 1, 0).color(red, green, blue, alpha).light(light).next();
-        
-        // Левая линия (x = 0, от y=0 до y=1)
-        consumer.vertex(matrix, 0, 0, 0).color(red, green, blue, alpha).light(light).next();
-        consumer.vertex(matrix, thickness, 0, 0).color(red, green, blue, alpha).light(light).next();
-        consumer.vertex(matrix, thickness, 1, 0).color(red, green, blue, alpha).light(light).next();
-        consumer.vertex(matrix, 0, 1, 0).color(red, green, blue, alpha).light(light).next();
-        
-        // Правая линия (x = 1, от y=0 до y=1)
-        consumer.vertex(matrix, 1-thickness, 0, 0).color(red, green, blue, alpha).light(light).next();
-        consumer.vertex(matrix, 1, 0, 0).color(red, green, blue, alpha).light(light).next();
-        consumer.vertex(matrix, 1, 1, 0).color(red, green, blue, alpha).light(light).next();
-        consumer.vertex(matrix, 1-thickness, 1, 0).color(red, green, blue, alpha).light(light).next();
+
+        consumer.vertex(matrix, 0, 0, 0).color(red, green, blue, alpha).next();
+        consumer.vertex(matrix, 1, 0, 0).color(red, green, blue, alpha).next();
+        consumer.vertex(matrix, 1, thickness, 0).color(red, green, blue, alpha).next();
+        consumer.vertex(matrix, 0, thickness, 0).color(red, green, blue, alpha).next();
+
+        consumer.vertex(matrix, 0, 1-thickness, 0).color(red, green, blue, alpha).next();
+        consumer.vertex(matrix, 1, 1-thickness, 0).color(red, green, blue, alpha).next();
+        consumer.vertex(matrix, 1, 1, 0).color(red, green, blue, alpha).next();
+        consumer.vertex(matrix, 0, 1, 0).color(red, green, blue, alpha).next();
+
+        consumer.vertex(matrix, 0, 0, 0).color(red, green, blue, alpha).next();
+        consumer.vertex(matrix, thickness, 0, 0).color(red, green, blue, alpha).next();
+        consumer.vertex(matrix, thickness, 1, 0).color(red, green, blue, alpha).next();
+        consumer.vertex(matrix, 0, 1, 0).color(red, green, blue, alpha).next();
+
+        consumer.vertex(matrix, 1-thickness, 0, 0).color(red, green, blue, alpha).next();
+        consumer.vertex(matrix, 1, 0, 0).color(red, green, blue, alpha).next();
+        consumer.vertex(matrix, 1, 1, 0).color(red, green, blue, alpha).next();
+        consumer.vertex(matrix, 1-thickness, 1, 0).color(red, green, blue, alpha).next();
     }
 
     private static void drawNeutralExtraInsideBox(MatrixStack matrices, VertexConsumer lines, BlockPos pos,
@@ -268,17 +232,16 @@ public final class BoardOverlayRenderer {
                                                   float red, float green, float blue) {
         matrices.push();
         matrices.translate(-cameraPos.x, -cameraPos.y, -cameraPos.z);
-        
+
         double[] contracts = { 0.075, 0.081, 0.087, 0.093, 0.099, 0.105 };
         for (double contract : contracts) {
             Box box = new Box(pos).contract(contract);
-            // Рисуем Box используя линии через WorldRenderer с правильными координатами
-            WorldRenderer.drawBox(matrices, lines, 
-                box.minX, box.minY, box.minZ,
-                box.maxX, box.maxY, box.maxZ,
-                red, green, blue, 1.0F);
+            WorldRenderer.drawBox(matrices, lines,
+                    box.minX, box.minY, box.minZ,
+                    box.maxX, box.maxY, box.maxZ,
+                    red, green, blue, 1.0F);
         }
-        
+
         matrices.pop();
     }
 
@@ -312,14 +275,12 @@ public final class BoardOverlayRenderer {
         matrices.multiply(context.camera().getRotation());
         matrices.scale(-BADGE_SCALE, -BADGE_SCALE, BADGE_SCALE);
 
-        // Фон с SEE_THROUGH — видно своей команде сквозь блоки
         drawBackground(matrices, vertexConsumers, width, height, teamColor(indicator.teamName()), true);
-        
+
         matrices.translate(0.0F, 0.0F, -0.8F);
         int textX = (width - textRenderer.getWidth(text)) / 2;
         int textY = (height - 8) / 2;
-        
-        // Текст с SEE_THROUGH — видно своей команде сквозь блоки
+
         textRenderer.draw(text, textX + 1, textY + 1, 0xEE000000, false, matrices.peek().getPositionMatrix(),
                 vertexConsumers, TextRenderer.TextLayerType.SEE_THROUGH, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
         textRenderer.draw(text, textX, textY, 0xFFFFFFFF, false, matrices.peek().getPositionMatrix(), vertexConsumers,
