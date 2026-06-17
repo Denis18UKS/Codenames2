@@ -3,6 +3,7 @@ package fable.codenames.client.renderer;
 import fable.codenames.board.BoardCellType;
 import fable.codenames.client.board.BoardClientState;
 import fable.codenames.item.ModItems;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -17,7 +18,9 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.RotationAxis;
+import net.minecraft.block.BlockState;
 import org.joml.Matrix4f;
+import org.lwjgl.opengl.GL11;
 
 import java.util.List;
 import java.util.Locale;
@@ -26,10 +29,7 @@ import java.util.Map;
 public final class BoardOverlayRenderer {
     private static final float BADGE_SCALE = 0.014F;
     private static final RenderLayer OVERLAY_LINES = RenderLayer.getLines();
-
-    // Заменяем RenderLayer.getDebugQuads() на полностью совместимый с шейдерами getLightning()
     private static final RenderLayer OVERLAY_QUADS = RenderLayer.getLightning();
-
     private static final RenderLayer TEXT_SEE_THROUGH = RenderLayer.getTextSeeThrough(new Identifier("codenames", "text/see_through"));
 
     private BoardOverlayRenderer() {
@@ -49,7 +49,8 @@ public final class BoardOverlayRenderer {
         Vec3d cameraPos = context.camera().getPos();
         VertexConsumerProvider.Immediate consumers = client.getBufferBuilders().getEntityVertexConsumers();
 
-        boolean showCells = !cells.isEmpty() && (isHoldingTool(player) || BoardClientState.canSeeAnswers());
+        boolean isHoldingTool = isHoldingTool(player);
+        boolean showCells = !cells.isEmpty() && (isHoldingTool || BoardClientState.canSeeAnswers());
         boolean showVotes = !voteIndicators.isEmpty();
 
         if (!showCells && !showVotes) {
@@ -57,13 +58,20 @@ public final class BoardOverlayRenderer {
         }
 
         if (showCells) {
+            Tessellator tessellator = Tessellator.getInstance();
+            BufferBuilder bufferBuilder = tessellator.getBuffer();
             matrices.push();
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+            RenderSystem.enableDepthTest();
+            RenderSystem.depthFunc(GL11.GL_LEQUAL);
+            RenderSystem.disableCull();
+            RenderSystem.setShader(GameRenderer::getPositionColorProgram);
 
-            VertexConsumer lines = consumers.getBuffer(OVERLAY_LINES);
-            VertexConsumer quads = consumers.getBuffer(OVERLAY_QUADS);
+            bufferBuilder.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
 
             for (Map.Entry<BlockPos, BoardCellType> entry : cells.entrySet()) {
-                if (entry.getValue() == BoardCellType.UNASSIGNED) {
+                if (entry.getValue() == BoardCellType.UNASSIGNED && !isHoldingTool) {
                     continue;
                 }
 
@@ -72,17 +80,51 @@ public final class BoardOverlayRenderer {
                 float green = ((color >> 8) & 255) / 255.0F;
                 float blue = (color & 255) / 255.0F;
 
-                drawThickInsideBox(matrices, quads, entry.getKey(), cameraPos, red, green, blue, cells);
-
-                if (entry.getValue() == BoardCellType.NEUTRAL) {
-                    drawNeutralExtraInsideBox(matrices, lines, entry.getKey(), cameraPos, red, green, blue);
-                }
+                drawThickInsideBox(matrices, bufferBuilder, entry.getKey(), cameraPos, red, green, blue, cells);
             }
+
+            tessellator.draw();
+
+            RenderSystem.enableCull();
+            RenderSystem.disableBlend();
 
             matrices.pop();
 
-            consumers.draw(OVERLAY_QUADS);
-            consumers.draw(OVERLAY_LINES);
+            boolean hasNeutral = cells.values().stream().anyMatch(t -> t == BoardCellType.NEUTRAL);
+            if (hasNeutral) {
+                matrices.push();
+
+                RenderSystem.enableBlend();
+                RenderSystem.defaultBlendFunc();
+                RenderSystem.enableDepthTest();
+                RenderSystem.depthFunc(GL11.GL_LEQUAL);
+                RenderSystem.disableCull();
+                RenderSystem.lineWidth(2.0F);
+                RenderSystem.setShader(GameRenderer::getPositionColorProgram);
+
+                bufferBuilder.begin(VertexFormat.DrawMode.LINES, VertexFormats.POSITION_COLOR);
+
+                for (Map.Entry<BlockPos, BoardCellType> entry : cells.entrySet()) {
+                    if (entry.getValue() != BoardCellType.NEUTRAL) {
+                        continue;
+                    }
+
+                    int color = entry.getValue().getColor();
+                    float red = ((color >> 16) & 255) / 255.0F;
+                    float green = ((color >> 8) & 255) / 255.0F;
+                    float blue = (color & 255) / 255.0F;
+
+                    drawNeutralExtraInsideBox(matrices, bufferBuilder, entry.getKey(), cameraPos, red, green, blue);
+                }
+
+                tessellator.draw();
+
+                RenderSystem.lineWidth(1.0F);
+                RenderSystem.enableCull();
+                RenderSystem.disableBlend();
+
+                matrices.pop();
+            }
         }
 
         if (showVotes) {
@@ -135,15 +177,11 @@ public final class BoardOverlayRenderer {
         return isConfigurator(player.getMainHandStack()) || isConfigurator(player.getOffHandStack());
     }
 
-    private static void drawThickInsideBox(MatrixStack matrices, VertexConsumer quads, BlockPos pos,
-                                           Vec3d cameraPos, float red, float green, float blue,
-                                           Map<BlockPos, BoardCellType> cells) {
+    private static void drawThickInsideBox(MatrixStack matrices, VertexConsumer quads, BlockPos pos, Vec3d cameraPos, float red, float green, float blue, Map<BlockPos, BoardCellType> cells) {
         matrices.push();
         matrices.translate(-cameraPos.x, -cameraPos.y, -cameraPos.z);
         matrices.translate(pos.getX(), pos.getY(), pos.getZ());
-
         float thickness = 0.06f;
-
         for (Direction face : Direction.values()) {
             if (!shouldRenderFace(pos, face, cells)) {
                 continue;
@@ -206,7 +244,7 @@ public final class BoardOverlayRenderer {
     private static void drawFaceOverlayQuads(MatrixStack matrices, VertexConsumer consumer,
                                              float thickness, float red, float green, float blue) {
         Matrix4f matrix = matrices.peek().getPositionMatrix();
-        float alpha = 1.0f;
+        float alpha = 1.00f;
 
         consumer.vertex(matrix, 0, 0, 0).color(red, green, blue, alpha).next();
         consumer.vertex(matrix, 1, 0, 0).color(red, green, blue, alpha).next();
@@ -229,23 +267,43 @@ public final class BoardOverlayRenderer {
         consumer.vertex(matrix, 1-thickness, 1, 0).color(red, green, blue, alpha).next();
     }
 
-    private static void drawNeutralExtraInsideBox(MatrixStack matrices, VertexConsumer lines, BlockPos pos,
-                                                  Vec3d cameraPos,
-                                                  float red, float green, float blue) {
+    private static void drawNeutralExtraInsideBox(MatrixStack matrices, VertexConsumer lines, BlockPos pos, Vec3d cameraPos, float red, float green, float blue) {
         matrices.push();
         matrices.translate(-cameraPos.x, -cameraPos.y, -cameraPos.z);
 
-        double[] contracts = { 0.075, 0.081, 0.087, 0.093, 0.099, 0.105 };
-        for (double contract : contracts) {
-            Box box = new Box(pos).contract(contract);
-            WorldRenderer.drawBox(matrices, lines,
-                    box.minX, box.minY, box.minZ,
-                    box.maxX, box.maxY, box.maxZ,
-                    red, green, blue, 1.0F);
+        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        double[] expands = { 0.003, 0.006, 0.009, 0.012, 0.015, 0.018 };
+        for (double expand : expands) {
+            Box box = new Box(pos).expand(expand);
+            drawBoxEdges(matrix, lines, box, red, green, blue, 1.0F);
         }
 
         matrices.pop();
     }
+
+    private static void drawBoxEdges(Matrix4f m, VertexConsumer c, Box b,
+                                     float r, float g, float bl, float a) {
+        float x0 = (float) b.minX, y0 = (float) b.minY, z0 = (float) b.minZ;
+        float x1 = (float) b.maxX, y1 = (float) b.maxY, z1 = (float) b.maxZ;
+        line(m, c, x0, y0, z0, x1, y0, z0, r, g, bl, a);
+        line(m, c, x1, y0, z0, x1, y0, z1, r, g, bl, a);
+        line(m, c, x1, y0, z1, x0, y0, z1, r, g, bl, a);
+        line(m, c, x0, y0, z1, x0, y0, z0, r, g, bl, a);
+        line(m, c, x0, y1, z0, x1, y1, z0, r, g, bl, a);
+        line(m, c, x1, y1, z0, x1, y1, z1, r, g, bl, a);
+        line(m, c, x1, y1, z1, x0, y1, z1, r, g, bl, a);
+        line(m, c, x0, y1, z1, x0, y1, z0, r, g, bl, a);
+        line(m, c, x0, y0, z0, x0, y1, z0, r, g, bl, a);
+        line(m, c, x1, y0, z0, x1, y1, z0, r, g, bl, a);
+        line(m, c, x1, y0, z1, x1, y1, z1, r, g, bl, a);
+        line(m, c, x0, y0, z1, x0, y1, z1, r, g, bl, a);
+    }
+
+    private static void line(Matrix4f m, VertexConsumer c, float x1, float y1, float z1, float x2, float y2, float z2, float r, float g, float b, float a) {
+        c.vertex(m, x1, y1, z1).color(r, g, b, a).next();
+        c.vertex(m, x2, y2, z2).color(r, g, b, a).next();
+    }
+
 
     private static boolean isConfigurator(ItemStack stack) {
         return !stack.isEmpty() && stack.isOf(ModItems.BOARD_CONFIGURATOR.getItem());
