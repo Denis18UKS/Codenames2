@@ -42,12 +42,10 @@ public final class TeamChatMessengerRenderer {
 
     public static List<RenderedMessage> buildMessages(TextRenderer textRenderer, List<TeamChatMessage> messages) {
         List<RenderedMessage> rendered = new ArrayList<>();
-
         for (TeamChatMessage message : messages) {
             boolean own = TeamChatClientState.isOwnMessage(message);
             rendered.add(buildMessage(textRenderer, message.content(), message.teamName(), own, message.sentAtMillis()));
         }
-
         return rendered;
     }
 
@@ -213,7 +211,7 @@ public final class TeamChatMessengerRenderer {
         int width = PANEL_WIDTH - 24;
         int height = 18;
         int color = active ? 0xEE050505 : 0xAA050505;
-        drawWorldRect(matrices, vertexConsumers, x, y, width, height, color, light, false);
+        drawWorldRect(matrices, vertexConsumers, x, y, width, height, color, LightmapTextureManager.MAX_LIGHT_COORDINATE, false);
 
         if (!canSend) {
             return;
@@ -240,7 +238,7 @@ public final class TeamChatMessengerRenderer {
 
     private static void drawWorldRect(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int x, int y, int width, int height, int color, int light, boolean seeThrough) {
         Matrix4f matrix = matrices.peek().getPositionMatrix();
-        VertexConsumer consumer = vertexConsumers.getBuffer(seeThrough ? RenderLayer.getTextBackgroundSeeThrough() : RenderLayer.getTextBackground());
+        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getLeash());
         float a = ((color >> 24) & 255) / 255.0F;
         float r = ((color >> 16) & 255) / 255.0F;
         float g = ((color >> 8) & 255) / 255.0F;
@@ -305,17 +303,6 @@ public final class TeamChatMessengerRenderer {
 
     private static float animationYOffset(float progress) {
         return (1.0F - progress) * 12.0F;
-    }
-
-    private static void addVertex(VertexConsumer consumer, Matrix4f positionMatrix, Matrix3f normalMatrix,
-                                  float x, float y, float z, float u, float v, int tint, int light, int overlay) {
-        consumer.vertex(positionMatrix, x, y, z)
-                .color((tint >> 16) & 255, (tint >> 8) & 255, tint & 255, (tint >> 24) & 255)
-                .texture(u, v)
-                .overlay(overlay)
-                .light(light)
-                .normal(normalMatrix, 0.0F, 0.0F, 1.0F)
-                .next();
     }
 
     private static void addTexturedVertex(VertexConsumer consumer, Matrix4f positionMatrix,
