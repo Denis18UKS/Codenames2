@@ -1,5 +1,6 @@
 package fable.codenames.client.chat;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import fable.codenames.block.TeamChatBlock;
 import fable.codenames.block.entity.TeamChatBlockEntity;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
@@ -30,7 +31,6 @@ public final class ChatHoverHintRenderer {
     }
 
     private static void renderHud(DrawContext context, float tickDelta) {
-
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.world == null)
             return;
@@ -48,6 +48,9 @@ public final class ChatHoverHintRenderer {
 
         if (hoverProgress <= 0.01f)
             return;
+
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+
         int alpha = (int) (hoverProgress * 180);
         String message = "Нажмите ПКМ, чтобы писать в командный чат";
 
@@ -154,7 +157,7 @@ public final class ChatHoverHintRenderer {
             case NORTH -> new Vec3d(-1.0D, 0.0D, 0.0D);
             case SOUTH -> new Vec3d(1.0D, 0.0D, 0.0D);
             case WEST -> new Vec3d(0.0D, 0.0D, 1.0D);
-            case EAST -> new Vec3d(0.0D, 0.0D, -1.0D);
+            case EAST -> new Vec3d(1.0D, 0.0D, -1.0D);
             default -> new Vec3d(1.0D, 0.0D, 0.0D);
         };
     }
