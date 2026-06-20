@@ -228,12 +228,14 @@ public final class TeamChatMessengerRenderer {
     private static void drawWorldBubbleTexture(MatrixStack matrices, VertexConsumerProvider vertexConsumers, Identifier texture,
                                                int x, int y, int width, int height, String teamName, int light) {
         Matrix4f matrix = matrices.peek().getPositionMatrix();
-        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getText(texture));
+        Matrix3f normalMatrix = matrices.peek().getNormalMatrix();
+        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(texture));
         int tint = 0xFFFFFFFF;
-        addTexturedVertex(consumer, matrix, x, y + height, 0.0F, 0.0F, 1.0F, tint, light);
-        addTexturedVertex(consumer, matrix, x + width, y + height, 0.0F, 1.0F, 1.0F, tint, light);
-        addTexturedVertex(consumer, matrix, x + width, y, 0.0F, 1.0F, 0.0F, tint, light);
-        addTexturedVertex(consumer, matrix, x, y, 0.0F, 0.0F, 0.0F, tint, light);
+
+        addTexturedVertex(consumer, matrix, normalMatrix, x, y + height, 0.0F, 0.0F, 1.0F, tint, light);
+        addTexturedVertex(consumer, matrix, normalMatrix, x + width, y + height, 0.0F, 1.0F, 1.0F, tint, light);
+        addTexturedVertex(consumer, matrix, normalMatrix, x + width, y, 0.0F, 1.0F, 0.0F, tint, light);
+        addTexturedVertex(consumer, matrix, normalMatrix, x, y, 0.0F, 0.0F, 0.0F, tint, light);
     }
 
     private static void drawWorldRect(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int x, int y, int width, int height, int color, int light, boolean seeThrough) {
@@ -305,15 +307,16 @@ public final class TeamChatMessengerRenderer {
         return (1.0F - progress) * 12.0F;
     }
 
-    private static void addTexturedVertex(VertexConsumer consumer, Matrix4f positionMatrix,
+    private static void addTexturedVertex(VertexConsumer consumer, Matrix4f positionMatrix, Matrix3f normalMatrix,
                                           float x, float y, float z, float u, float v, int tint, int light) {
         consumer.vertex(positionMatrix, x, y, z)
                 .color((tint >> 16) & 255, (tint >> 8) & 255, tint & 255, (tint >> 24) & 255)
                 .texture(u, v)
+                .overlay(net.minecraft.client.render.OverlayTexture.DEFAULT_UV)
                 .light(light)
+                .normal(normalMatrix, 0.0F, 0.0F, 1.0F)
                 .next();
     }
-
     public record RenderedMessage(Text lineText, int x, int bubbleWidth, int bubbleHeight, float textScale, boolean own, String teamName, long sentAtMillis) {
         public int height() {
             return this.bubbleHeight + BUBBLE_GAP;
