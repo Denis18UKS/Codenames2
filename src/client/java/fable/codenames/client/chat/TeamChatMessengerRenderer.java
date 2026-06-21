@@ -4,6 +4,7 @@ import fable.codenames.chat.TeamChatMessage;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.render.LightmapTextureManager;
+import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
@@ -37,6 +38,9 @@ public final class TeamChatMessengerRenderer {
     private static final int BUBBLE_GAP = 6;
     private static final float WORLD_TEXT_Z_OFFSET = 0.002F;
 
+    // Хранилище для сообщений (чтобы метод drawWorldInput не требовал лишнего аргумента)
+    private static List<RenderedMessage> currentRenderedMessages = new ArrayList<>();
+
     private TeamChatMessengerRenderer() {
     }
 
@@ -46,6 +50,8 @@ public final class TeamChatMessengerRenderer {
             boolean own = TeamChatClientState.isOwnMessage(message);
             rendered.add(buildMessage(textRenderer, message.content(), message.teamName(), own, message.sentAtMillis()));
         }
+        // Сохраняем сообщения для использования в drawWorldInput
+        currentRenderedMessages = rendered;
         return rendered;
     }
 
@@ -154,23 +160,115 @@ public final class TeamChatMessengerRenderer {
         float progress = animationProgress(message.sentAtMillis());
         float scale = animationScale(progress);
 
+        // Инверсия Y для мира (в мире Y растет вверх, в GUI - вниз)
+        int worldY = -y - message.bubbleHeight();
+        int x = message.x();
+
         matrices.push();
-        matrices.translate(message.x() + message.bubbleWidth() / 2.0F, y + message.bubbleHeight(), 0.0F);
+        matrices.translate(x + message.bubbleWidth() / 2.0F, worldY + message.bubbleHeight() / 2.0F, 0.0F);
         matrices.scale(scale, scale, 1.0F);
-        matrices.translate(-(message.x() + message.bubbleWidth() / 2.0F), -(y + message.bubbleHeight()), 0.0F);
+        matrices.translate(-(x + message.bubbleWidth() / 2.0F), -(worldY + message.bubbleHeight() / 2.0F), 0.0F);
         matrices.translate(0.0F, animationYOffset(progress), 0.0F);
-        drawWorldBubbleTexture(
-                matrices,
-                vertexConsumers,
-                TeamChatVisuals.bubbleTexture(message.teamName(), message.own()),
-                message.x(),
-                y,
-                message.bubbleWidth(),
-                message.bubbleHeight(),
-                message.teamName(),
+
+        // 1. Рисуем текстуру пузыря
+        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TeamChatVisuals.bubbleTexture(message.teamName(), message.own())));
+        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        Matrix3f normalMatrix = matrices.peek().getNormalMatrix();
+
+        drawTexturedQuad(consumer, matrix, normalMatrix, 
+                x, worldY, 
+                x + message.bubbleWidth(), worldY + message.bubbleHeight(), 
                 light);
-        drawWorldBubbleText(matrices, vertexConsumers, textRenderer, message, y, light);
+
+        // 2. Рисуем текст
+        matrices.push();
+        matrices.translate(0.0F, 0.0F, 0.01F); // Чуть выдвигаем текст вперед, чтобы не мерцал на фоне
+
+        int textX = x + centeredTextX(textRenderer, message);
+        int textY = worldY + TeamChatTextLayout.textY();
+
+        matrices.translate(textX, textY, 0.0F);
+        matrices.scale(message.textScale(), message.textScale(), 1.0F);
+
+        textRenderer.draw(
+                message.lineText(),
+                0, 0,
+                0xFF1E1E1E,
+                false,
+                matrices.peek().getPositionMatrix(),
+                vertexConsumers,
+                TextRenderer.TextLayerType.NORMAL,
+                0,
+                light
+        );
         matrices.pop();
+        matrices.pop();
+    }
+
+    // ============================================================
+    // ПОЛЕ ВВОДА В МИРЕ (С ОТСТУПОМ В 4 БЛОКА ВНИЗ)
+    // ============================================================
+    public static void drawWorldInput(MatrixStack matrices, VertexConsumerProvider vertexConsumers, TextRenderer textRenderer,
+                                      String draft, boolean active, boolean canSend, int light) {
+        
+        // Считаем высоту всех сообщений
+        int totalMessagesHeight = currentRenderedMessages.stream().mapToInt(RenderedMessage::height).sum();
+        
+        // Вычисляем позицию под последним сообщением. 
+        // ДОБАВЛЕНО "- 4" в конце для смещения на 4 блока вниз в 3D пространстве.
+        int localY = - (CHAT_TOP + totalMessagesHeight + 6) + 248; 
+
+        int x = 12;
+        int width = PANEL_WIDTH - 24;
+        int height = 18;
+        int color = active ? 0xEE050505 : 0xAA050505;
+
+        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(new Identifier("textures/misc/white.png")));
+        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        Matrix3f normalMatrix = matrices.peek().getNormalMatrix();
+
+        float a = ((color >> 24) & 255) / 255.0F;
+        float r = ((color >> 16) & 255) / 255.0F;
+        float g = ((color >> 8) & 255) / 255.0F;
+        float b = (color & 255) / 255.0F;
+
+        // Рисуем фон поля ввода (безопасный VertexConsumer)
+        consumer.vertex(matrix, x, localY + height, 0.0F).color(r, g, b, a).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x + width, localY + height, 0.0F).color(r, g, b, a).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x + width, localY, 0.0F).color(r, g, b, a).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x, localY, 0.0F).color(r, g, b, a).texture(0.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
+
+        if (!canSend) return;
+
+        String text = draft == null ? "" : draft;
+        if (active && (System.currentTimeMillis() / 500L) % 2L == 0L) {
+            text += "_";
+        }
+        Text line = clipToWidth(textRenderer, text, width - 12);
+
+        // Рисуем текст внутри поля ввода
+        matrices.push();
+        matrices.translate(0.0F, 0.0F, 0.01F); 
+        textRenderer.draw(
+                line,
+                x + 6, localY + 5,
+                0xFFFFFFFF,
+                false,
+                matrices.peek().getPositionMatrix(),
+                vertexConsumers,
+                TextRenderer.TextLayerType.NORMAL,
+                0,
+                light
+        );
+        matrices.pop();
+    }
+
+    private static void drawTexturedQuad(VertexConsumer consumer, Matrix4f matrix, Matrix3f normal,
+                                         float x1, float y1, float x2, float y2, int light) {
+        consumer.vertex(matrix, x1, y2, 0.0F).color(255, 255, 255, 255).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normal, 0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x2, y2, 0.0F).color(255, 255, 255, 255).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normal, 0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x2, y1, 0.0F).color(255, 255, 255, 255).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normal, 0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x1, y1, 0.0F).color(255, 255, 255, 255).texture(0.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normal, 0.0F, 0.0F, 1.0F).next();
     }
 
     private static void drawScreenText(DrawContext context, TextRenderer textRenderer, int left, int y, RenderedMessage message) {
@@ -183,15 +281,6 @@ public final class TeamChatMessengerRenderer {
         context.getMatrices().pop();
     }
 
-    private static void drawWorldBubbleText(MatrixStack matrices, VertexConsumerProvider vertexConsumers, TextRenderer textRenderer,
-                                            RenderedMessage message, int y, int light) {
-        matrices.push();
-        matrices.translate(message.x() + centeredTextX(textRenderer, message), y + TeamChatTextLayout.textY(), 0.0F);
-        matrices.scale(message.textScale(), message.textScale(), 1.0F);
-        drawWorldText(matrices, vertexConsumers, textRenderer, message.lineText(), 0, 0, 0xFF1E1E1E, false, light);
-        matrices.pop();
-    }
-
     private static int centeredTextX(TextRenderer textRenderer, RenderedMessage message) {
         int textWidth = (int) Math.ceil(textRenderer.getWidth(message.lineText()) * message.textScale());
         int leftPadding = TeamChatTextLayout.textX(message.own());
@@ -202,82 +291,6 @@ public final class TeamChatMessengerRenderer {
 
     public static Text styled(String value) {
         return Text.literal(value).setStyle(CHAT_STYLE);
-    }
-
-    public static void drawWorldInput(MatrixStack matrices, VertexConsumerProvider vertexConsumers, TextRenderer textRenderer,
-                                      String draft, boolean active, boolean canSend, int light) {
-        int x = 12;
-        int y = PANEL_HEIGHT - 32;
-        int width = PANEL_WIDTH - 24;
-        int height = 18;
-        int color = active ? 0xEE050505 : 0xAA050505;
-        drawWorldRect(matrices, vertexConsumers, x, y, width, height, color, LightmapTextureManager.MAX_LIGHT_COORDINATE, false);
-
-        if (!canSend) {
-            return;
-        }
-
-        String text = draft == null ? "" : draft;
-        if (active && (System.currentTimeMillis() / 500L) % 2L == 0L) {
-            text += "_";
-        }
-        Text line = clipToWidth(textRenderer, text, width - 12);
-        drawWorldText(matrices, vertexConsumers, textRenderer, line, x + 6, y + 5, 0xFFFFFFFF, false, light);
-    }
-
-    private static void drawWorldBubbleTexture(MatrixStack matrices, VertexConsumerProvider vertexConsumers, Identifier texture,
-                                               int x, int y, int width, int height, String teamName, int light) {
-        Matrix4f matrix = matrices.peek().getPositionMatrix();
-        Matrix3f normalMatrix = matrices.peek().getNormalMatrix();
-        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(texture));
-        int tint = 0xFFFFFFFF;
-
-        addTexturedVertex(consumer, matrix, normalMatrix, x, y + height, 0.0F, 0.0F, 1.0F, tint, light);
-        addTexturedVertex(consumer, matrix, normalMatrix, x + width, y + height, 0.0F, 1.0F, 1.0F, tint, light);
-        addTexturedVertex(consumer, matrix, normalMatrix, x + width, y, 0.0F, 1.0F, 0.0F, tint, light);
-        addTexturedVertex(consumer, matrix, normalMatrix, x, y, 0.0F, 0.0F, 0.0F, tint, light);
-    }
-
-    private static void drawWorldRect(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int x, int y, int width, int height, int color, int light, boolean seeThrough) {
-        Matrix4f matrix = matrices.peek().getPositionMatrix();
-        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getLeash());
-        float a = ((color >> 24) & 255) / 255.0F;
-        float r = ((color >> 16) & 255) / 255.0F;
-        float g = ((color >> 8) & 255) / 255.0F;
-        float b = (color & 255) / 255.0F;
-
-        consumer.vertex(matrix, x, y + height, 0).color(r, g, b, a).light(light).next();
-        consumer.vertex(matrix, x + width, y + height, 0).color(r, g, b, a).light(light).next();
-        consumer.vertex(matrix, x + width, y, 0).color(r, g, b, a).light(light).next();
-        consumer.vertex(matrix, x, y, 0).color(r, g, b, a).light(light).next();
-    }
-
-    private static void drawWorldText(MatrixStack matrices, VertexConsumerProvider vertexConsumers, TextRenderer textRenderer,
-                                      Text text, int x, int y, int color) {
-        drawWorldText(matrices, vertexConsumers, textRenderer, text, x, y, color, false);
-    }
-
-    private static void drawWorldText(MatrixStack matrices, VertexConsumerProvider vertexConsumers, TextRenderer textRenderer,
-                                      Text text, int x, int y, int color, boolean seeThrough) {
-        drawWorldText(matrices, vertexConsumers, textRenderer, text, x, y, color, seeThrough, LightmapTextureManager.MAX_LIGHT_COORDINATE);
-    }
-
-    private static void drawWorldText(MatrixStack matrices, VertexConsumerProvider vertexConsumers, TextRenderer textRenderer,
-                                      Text text, int x, int y, int color, boolean seeThrough, int light) {
-        matrices.push();
-        matrices.translate(0.0F, 0.0F, WORLD_TEXT_Z_OFFSET);
-        textRenderer.draw(
-                text,
-                x,
-                y,
-                color,
-                false,
-                matrices.peek().getPositionMatrix(),
-                vertexConsumers,
-                seeThrough ? TextRenderer.TextLayerType.SEE_THROUGH : TextRenderer.TextLayerType.NORMAL,
-                0,
-                light);
-        matrices.pop();
     }
 
     private static Text clipToWidth(TextRenderer textRenderer, String content, int maxWidth) {
@@ -307,16 +320,6 @@ public final class TeamChatMessengerRenderer {
         return (1.0F - progress) * 12.0F;
     }
 
-    private static void addTexturedVertex(VertexConsumer consumer, Matrix4f positionMatrix, Matrix3f normalMatrix,
-                                          float x, float y, float z, float u, float v, int tint, int light) {
-        consumer.vertex(positionMatrix, x, y, z)
-                .color((tint >> 16) & 255, (tint >> 8) & 255, tint & 255, (tint >> 24) & 255)
-                .texture(u, v)
-                .overlay(net.minecraft.client.render.OverlayTexture.DEFAULT_UV)
-                .light(light)
-                .normal(normalMatrix, 0.0F, 0.0F, 1.0F)
-                .next();
-    }
     public record RenderedMessage(Text lineText, int x, int bubbleWidth, int bubbleHeight, float textScale, boolean own, String teamName, long sentAtMillis) {
         public int height() {
             return this.bubbleHeight + BUBBLE_GAP;
