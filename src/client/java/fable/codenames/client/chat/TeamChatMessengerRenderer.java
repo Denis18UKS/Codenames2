@@ -3,7 +3,6 @@ package fable.codenames.client.chat;
 import fable.codenames.chat.TeamChatMessage;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.LightmapTextureManager;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
@@ -38,9 +37,6 @@ public final class TeamChatMessengerRenderer {
     private static final int BUBBLE_GAP = 6;
     private static final float WORLD_TEXT_Z_OFFSET = 0.002F;
 
-    // Хранилище для сообщений (чтобы метод drawWorldInput не требовал лишнего аргумента)
-    private static List<RenderedMessage> currentRenderedMessages = new ArrayList<>();
-
     private TeamChatMessengerRenderer() {
     }
 
@@ -50,8 +46,6 @@ public final class TeamChatMessengerRenderer {
             boolean own = TeamChatClientState.isOwnMessage(message);
             rendered.add(buildMessage(textRenderer, message.content(), message.teamName(), own, message.sentAtMillis()));
         }
-        // Сохраняем сообщения для использования в drawWorldInput
-        currentRenderedMessages = rendered;
         return rendered;
     }
 
@@ -160,7 +154,7 @@ public final class TeamChatMessengerRenderer {
         float progress = animationProgress(message.sentAtMillis());
         float scale = animationScale(progress);
 
-        // Инверсия Y для мира (в мире Y растет вверх, в GUI - вниз)
+        // Инверсия Y для мира
         int worldY = -y - message.bubbleHeight();
         int x = message.x();
 
@@ -170,7 +164,6 @@ public final class TeamChatMessengerRenderer {
         matrices.translate(-(x + message.bubbleWidth() / 2.0F), -(worldY + message.bubbleHeight() / 2.0F), 0.0F);
         matrices.translate(0.0F, animationYOffset(progress), 0.0F);
 
-        // 1. Рисуем текстуру пузыря
         VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TeamChatVisuals.bubbleTexture(message.teamName(), message.own())));
         Matrix4f matrix = matrices.peek().getPositionMatrix();
         Matrix3f normalMatrix = matrices.peek().getNormalMatrix();
@@ -180,9 +173,8 @@ public final class TeamChatMessengerRenderer {
                 x + message.bubbleWidth(), worldY + message.bubbleHeight(), 
                 light);
 
-        // 2. Рисуем текст
         matrices.push();
-        matrices.translate(0.0F, 0.0F, 0.01F); // Чуть выдвигаем текст вперед, чтобы не мерцал на фоне
+        matrices.translate(0.0F, 0.0F, 0.01F);
 
         int textX = x + centeredTextX(textRenderer, message);
         int textY = worldY + TeamChatTextLayout.textY();
@@ -206,17 +198,18 @@ public final class TeamChatMessengerRenderer {
     }
 
     // ============================================================
-    // ПОЛЕ ВВОДА В МИРЕ (С ОТСТУПОМ В 4 БЛОКА ВНИЗ)
+    // ПОЛЕ ВВОДА В МИРЕ (ИСПРАВЛЕНО: ДОБАВЛЕН АРГУМЕНТ messages)
     // ============================================================
     public static void drawWorldInput(MatrixStack matrices, VertexConsumerProvider vertexConsumers, TextRenderer textRenderer,
+                                      List<RenderedMessage> messages, // <--- Добавлено!
                                       String draft, boolean active, boolean canSend, int light) {
         
         // Считаем высоту всех сообщений
-        int totalMessagesHeight = currentRenderedMessages.stream().mapToInt(RenderedMessage::height).sum();
+        int totalMessagesHeight = totalHeight(messages);
         
         // Вычисляем позицию под последним сообщением. 
-        // ДОБАВЛЕНО "- 4" в конце для смещения на 4 блока вниз в 3D пространстве.
-        int localY = - (CHAT_TOP + totalMessagesHeight + 6) + 248; 
+        // Теперь отсчет идет от низа панели (CHAT_BOTTOM).
+        int localY = -(CHAT_BOTTOM + totalMessagesHeight + 8);
 
         int x = 12;
         int width = PANEL_WIDTH - 24;
@@ -232,11 +225,11 @@ public final class TeamChatMessengerRenderer {
         float g = ((color >> 8) & 255) / 255.0F;
         float b = (color & 255) / 255.0F;
 
-        // Рисуем фон поля ввода (безопасный VertexConsumer)
-        consumer.vertex(matrix, x, localY + height, 0.0F).color(r, g, b, a).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x + width, localY + height, 0.0F).color(r, g, b, a).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x + width, localY, 0.0F).color(r, g, b, a).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x, localY, 0.0F).color(r, g, b, a).texture(0.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
+        // Рисуем фон поля ввода
+        consumer.vertex(matrix, x, localY + height, -0.02F).color(r, g, b, a).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x + width, localY + height, -0.02F).color(r, g, b, a).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x + width, localY, -0.02F).color(r, g, b, a).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x, localY, -0.02F).color(r, g, b, a).texture(0.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
 
         if (!canSend) return;
 
@@ -246,7 +239,6 @@ public final class TeamChatMessengerRenderer {
         }
         Text line = clipToWidth(textRenderer, text, width - 12);
 
-        // Рисуем текст внутри поля ввода
         matrices.push();
         matrices.translate(0.0F, 0.0F, 0.01F); 
         textRenderer.draw(
