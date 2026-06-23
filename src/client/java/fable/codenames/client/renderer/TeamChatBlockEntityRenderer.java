@@ -94,10 +94,12 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
         matrices.translate(0.0F, HEIGHT, CONTENT_Z + 0.002F);
         matrices.scale(WIDTH / TeamChatMessengerRenderer.PANEL_WIDTH, -HEIGHT / TeamChatMessengerRenderer.PANEL_HEIGHT, 1.0F);
         boolean active = TeamChatClientState.isBannerInputActive(entity.getPos());
+        List<TeamChatMessengerRenderer.RenderedMessage> messages = TeamChatMessengerRenderer.buildMessages(textRenderer, TeamChatClientState.getMessages());
         TeamChatMessengerRenderer.drawWorldInput(
                 matrices,
                 vertexConsumers,
                 textRenderer,
+                messages,
                 active ? TeamChatClientState.getDraft() : "",
                 active,
                 TeamChatClientState.canSend(),

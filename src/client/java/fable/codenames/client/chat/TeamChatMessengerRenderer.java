@@ -201,15 +201,12 @@ public final class TeamChatMessengerRenderer {
     // ПОЛЕ ВВОДА В МИРЕ (ИСПРАВЛЕНО: ДОБАВЛЕН АРГУМЕНТ messages)
     // ============================================================
     public static void drawWorldInput(MatrixStack matrices, VertexConsumerProvider vertexConsumers, TextRenderer textRenderer,
-                                      List<RenderedMessage> messages, // <--- Добавлено!
+                                      List<RenderedMessage> messages,
                                       String draft, boolean active, boolean canSend, int light) {
         
-        // Считаем высоту всех сообщений
         int totalMessagesHeight = totalHeight(messages);
-        
-        // Вычисляем позицию под последним сообщением. 
-        // Теперь отсчет идет от низа панели (CHAT_BOTTOM).
-        int localY = -(CHAT_BOTTOM + totalMessagesHeight + 8);
+        int y = Math.max(CHAT_TOP, CHAT_BOTTOM - 6 - totalMessagesHeight);
+        int localY = y + totalMessagesHeight + 6;
 
         int x = 12;
         int width = PANEL_WIDTH - 24;
