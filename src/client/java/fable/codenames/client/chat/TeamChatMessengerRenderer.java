@@ -154,8 +154,7 @@ public final class TeamChatMessengerRenderer {
         float progress = animationProgress(message.sentAtMillis());
         float scale = animationScale(progress);
 
-        // Инверсия Y для мира
-        int worldY = -y - message.bubbleHeight();
+        int worldY = y;
         int x = message.x();
 
         matrices.push();
@@ -197,9 +196,6 @@ public final class TeamChatMessengerRenderer {
         matrices.pop();
     }
 
-    // ============================================================
-    // ПОЛЕ ВВОДА В МИРЕ (ИСПРАВЛЕНО: ДОБАВЛЕН АРГУМЕНТ messages)
-    // ============================================================
     public static void drawWorldInput(MatrixStack matrices, VertexConsumerProvider vertexConsumers, TextRenderer textRenderer,
                                       List<RenderedMessage> messages,
                                       String draft, boolean active, boolean canSend, int light) {
@@ -222,7 +218,6 @@ public final class TeamChatMessengerRenderer {
         float g = ((color >> 8) & 255) / 255.0F;
         float b = (color & 255) / 255.0F;
 
-        // Рисуем фон поля ввода
         consumer.vertex(matrix, x, localY + height, -0.02F).color(r, g, b, a).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
         consumer.vertex(matrix, x + width, localY + height, -0.02F).color(r, g, b, a).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
         consumer.vertex(matrix, x + width, localY, -0.02F).color(r, g, b, a).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
