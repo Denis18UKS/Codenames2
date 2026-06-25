@@ -3,10 +3,7 @@ package fable.codenames.client.chat;
 import fable.codenames.chat.TeamChatMessage;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
@@ -162,15 +159,15 @@ public final class TeamChatMessengerRenderer {
         matrices.scale(scale, scale, 1.0F);
         matrices.translate(-(x + message.bubbleWidth() / 2.0F), -(worldY + message.bubbleHeight() / 2.0F), 0.0F);
         matrices.translate(0.0F, animationYOffset(progress), 0.0F);
-
+        int fullBright = LightmapTextureManager.MAX_LIGHT_COORDINATE;
         VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TeamChatVisuals.bubbleTexture(message.teamName(), message.own())));
         Matrix4f matrix = matrices.peek().getPositionMatrix();
         Matrix3f normalMatrix = matrices.peek().getNormalMatrix();
 
-        drawTexturedQuad(consumer, matrix, normalMatrix, 
-                x, worldY, 
-                x + message.bubbleWidth(), worldY + message.bubbleHeight(), 
-                light);
+        drawTexturedQuad(consumer, matrix, normalMatrix,
+                x, worldY,
+                x + message.bubbleWidth(), worldY + message.bubbleHeight(),
+                fullBright);
 
         matrices.push();
         matrices.translate(0.0F, 0.0F, 0.01F);
@@ -188,18 +185,17 @@ public final class TeamChatMessengerRenderer {
                 false,
                 matrices.peek().getPositionMatrix(),
                 vertexConsumers,
-                TextRenderer.TextLayerType.NORMAL,
+                TextRenderer.TextLayerType.POLYGON_OFFSET, // Изменено с NORMAL на POLYGON_OFFSET
                 0,
-                light
+                fullBright // Изменено с 'light' на 'fullBright'
         );
         matrices.pop();
         matrices.pop();
     }
-
     public static void drawWorldInput(MatrixStack matrices, VertexConsumerProvider vertexConsumers, TextRenderer textRenderer,
                                       List<RenderedMessage> messages,
                                       String draft, boolean active, boolean canSend, int light) {
-        
+
         int totalMessagesHeight = totalHeight(messages);
         int y = Math.max(CHAT_TOP, CHAT_BOTTOM - 6 - totalMessagesHeight);
         int localY = y + totalMessagesHeight + 6;
@@ -218,10 +214,13 @@ public final class TeamChatMessengerRenderer {
         float g = ((color >> 8) & 255) / 255.0F;
         float b = (color & 255) / 255.0F;
 
-        consumer.vertex(matrix, x, localY + height, -0.02F).color(r, g, b, a).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x + width, localY + height, -0.02F).color(r, g, b, a).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x + width, localY, -0.02F).color(r, g, b, a).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x, localY, -0.02F).color(r, g, b, a).texture(0.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
+        int fullBright = LightmapTextureManager.MAX_LIGHT_COORDINATE;
+
+        // Рендерим поле ввода с полной яркостью
+        consumer.vertex(matrix, x, localY + height, -0.02F).color(r, g, b, a).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(fullBright).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x + width, localY + height, -0.02F).color(r, g, b, a).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(fullBright).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x + width, localY, -0.02F).color(r, g, b, a).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(fullBright).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x, localY, -0.02F).color(r, g, b, a).texture(0.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(fullBright).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
 
         if (!canSend) return;
 
@@ -232,7 +231,7 @@ public final class TeamChatMessengerRenderer {
         Text line = clipToWidth(textRenderer, text, width - 12);
 
         matrices.push();
-        matrices.translate(0.0F, 0.0F, 0.01F); 
+        matrices.translate(0.0F, 0.0F, 0.01F);
         textRenderer.draw(
                 line,
                 x + 6, localY + 5,
@@ -240,12 +239,14 @@ public final class TeamChatMessengerRenderer {
                 false,
                 matrices.peek().getPositionMatrix(),
                 vertexConsumers,
-                TextRenderer.TextLayerType.NORMAL,
+                TextRenderer.TextLayerType.POLYGON_OFFSET, // Изменено с NORMAL на POLYGON_OFFSET
                 0,
-                light
+                fullBright // Изменено с 'light' на 'fullBright'
         );
         matrices.pop();
     }
+
+
 
     private static void drawTexturedQuad(VertexConsumer consumer, Matrix4f matrix, Matrix3f normal,
                                          float x1, float y1, float x2, float y2, int light) {
