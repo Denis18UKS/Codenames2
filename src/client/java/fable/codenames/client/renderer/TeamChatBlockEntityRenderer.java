@@ -8,6 +8,8 @@ import fable.codenames.client.chat.TeamChatVisuals;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.render.LightmapTextureManager;
+import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
@@ -16,7 +18,6 @@ import net.minecraft.client.render.block.entity.BlockEntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.RotationAxis;
-import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
 import java.util.List;
@@ -27,6 +28,7 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
     private static final float WIDTH = 2.0F;
     private static final float CONTENT_Z = 0.02F;
     private static final float WALL_Z = -0.492F;
+    private static final int FULL_BRIGHT_LIGHT = LightmapTextureManager.MAX_LIGHT_COORDINATE;
 
     public TeamChatBlockEntityRenderer(BlockEntityRendererFactory.Context context) {
     }
@@ -45,26 +47,25 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
         matrices.translate(BASE_OFFSET_X + entity.getBannerOffsetXPixels() / 16.0F, entity.getBannerOffsetYPixels() / 16.0F, 0.0F);
         matrices.translate(-WIDTH / 2.0F, 0.0F, WALL_Z);
 
-        drawPanel(matrices, vertexConsumers, light, overlay, entity.getTeamName());
-        drawMessages(matrices, vertexConsumers, light);
-        drawInput(matrices, vertexConsumers, light, entity);
+        drawPanel(matrices, vertexConsumers, entity.getTeamName());
+        drawMessages(matrices, vertexConsumers);
+        drawInput(matrices, vertexConsumers, entity);
 
         matrices.pop();
     }
 
-    private static void drawPanel(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, int overlay, String teamName) {
+    private static void drawPanel(MatrixStack matrices, VertexConsumerProvider vertexConsumers, String teamName) {
         String visibleTeam = teamName == null || teamName.isBlank() ? TeamChatClientState.getCurrentTeam() : teamName;
         VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutoutNoCull(TeamChatVisuals.backgroundTexture(visibleTeam)));
         Matrix4f positionMatrix = matrices.peek().getPositionMatrix();
-        Matrix3f normalMatrix = matrices.peek().getNormalMatrix();
 
-        addVertex(consumer, positionMatrix, normalMatrix, 0.0F, HEIGHT, 0.0F, 0.0F, 0.0F, light, overlay);
-        addVertex(consumer, positionMatrix, normalMatrix, WIDTH, HEIGHT, 0.0F, 1.0F, 0.0F, light, overlay);
-        addVertex(consumer, positionMatrix, normalMatrix, WIDTH, 0.0F, 0.0F, 1.0F, 1.0F, light, overlay);
-        addVertex(consumer, positionMatrix, normalMatrix, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F, light, overlay);
+        addVertex(consumer, positionMatrix, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F);
+        addVertex(consumer, positionMatrix, WIDTH, 0.0F, 0.0F, 1.0F, 1.0F);
+        addVertex(consumer, positionMatrix, WIDTH, HEIGHT, 0.0F, 1.0F, 0.0F);
+        addVertex(consumer, positionMatrix, 0.0F, HEIGHT, 0.0F, 0.0F, 0.0F);
     }
 
-    private static void drawMessages(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light) {
+    private static void drawMessages(MatrixStack matrices, VertexConsumerProvider vertexConsumers) {
         TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
         List<TeamChatMessengerRenderer.RenderedMessage> messages = TeamChatMessengerRenderer.buildMessages(textRenderer, TeamChatClientState.getMessages());
         if (messages.isEmpty()) {
@@ -81,14 +82,14 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
         int y = Math.max(TeamChatMessengerRenderer.CHAT_TOP, TeamChatMessengerRenderer.CHAT_BOTTOM - 6 - totalHeight);
 
         for (TeamChatMessengerRenderer.RenderedMessage message : visible) {
-            TeamChatMessengerRenderer.drawWorldBubble(matrices, vertexConsumers, textRenderer, y, message, light);
+            TeamChatMessengerRenderer.drawWorldBubble(matrices, vertexConsumers, textRenderer, y, message);
             y += message.height();
         }
 
         matrices.pop();
     }
 
-    private static void drawInput(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, TeamChatBlockEntity entity) {
+    private static void drawInput(MatrixStack matrices, VertexConsumerProvider vertexConsumers, TeamChatBlockEntity entity) {
         TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
         matrices.push();
         matrices.translate(0.0F, HEIGHT, CONTENT_Z + 0.002F);
@@ -102,8 +103,7 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
                 messages,
                 active ? TeamChatClientState.getDraft() : "",
                 active,
-                TeamChatClientState.canSend(),
-                light);
+                TeamChatClientState.canSend());
         matrices.pop();
     }
 
@@ -117,14 +117,14 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
         };
     }
 
-    private static void addVertex(VertexConsumer consumer, Matrix4f positionMatrix, Matrix3f normalMatrix,
-                                  float x, float y, float z, float u, float v, int light, int overlay) {
+    private static void addVertex(VertexConsumer consumer, Matrix4f positionMatrix,
+                                  float x, float y, float z, float u, float v) {
         consumer.vertex(positionMatrix, x, y, z)
                 .color(255, 255, 255, 255)
                 .texture(u, v)
-                .overlay(overlay)
-                .light(light)
-                .normal(normalMatrix, 0.0F, 0.0F, 1.0F)
+                .overlay(OverlayTexture.DEFAULT_UV)
+                .light(FULL_BRIGHT_LIGHT)
+                .normal(0.0F, 0.0F, 1.0F)
                 .next();
     }
 }
