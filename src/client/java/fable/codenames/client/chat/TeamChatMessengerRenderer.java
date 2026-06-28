@@ -159,7 +159,7 @@ public final class TeamChatMessengerRenderer {
         matrices.scale(scale, scale, 1.0F);
         matrices.translate(-(x + message.bubbleWidth() / 2.0F), -(worldY + message.bubbleHeight() / 2.0F), 0.0F);
         matrices.translate(0.0F, animationYOffset(progress), 0.0F);
-        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucentEmissive(TeamChatVisuals.bubbleTexture(message.teamName(), message.own())));
+        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TeamChatVisuals.bubbleTexture(message.teamName(), message.own())));
         Matrix4f matrix = matrices.peek().getPositionMatrix();
 
         drawTexturedQuad(consumer, matrix,
@@ -190,6 +190,7 @@ public final class TeamChatMessengerRenderer {
         matrices.pop();
         matrices.pop();
     }
+
     public static void drawWorldInput(MatrixStack matrices, VertexConsumerProvider vertexConsumers, TextRenderer textRenderer,
                                       List<RenderedMessage> messages,
                                       String draft, boolean active, boolean canSend) {
@@ -201,6 +202,11 @@ public final class TeamChatMessengerRenderer {
         int x = 12;
         int width = PANEL_WIDTH - 24;
         int height = 18;
+
+        if (!active && (draft == null || draft.isEmpty())) {
+            return;
+        }
+
         int color = active ? 0xEE050505 : 0xAA050505;
 
         VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(WHITE_TEXTURE));
@@ -211,10 +217,11 @@ public final class TeamChatMessengerRenderer {
         float g = ((color >> 8) & 255) / 255.0F;
         float b = (color & 255) / 255.0F;
 
-        addColoredTexturedVertex(consumer, matrix, x, localY + height, -0.02F, 0.0F, 1.0F, r, g, b, a);
-        addColoredTexturedVertex(consumer, matrix, x + width, localY + height, -0.02F, 1.0F, 1.0F, r, g, b, a);
-        addColoredTexturedVertex(consumer, matrix, x + width, localY, -0.02F, 1.0F, 0.0F, r, g, b, a);
-        addColoredTexturedVertex(consumer, matrix, x, localY, -0.02F, 0.0F, 0.0F, r, g, b, a);
+        // Z = 0.0F — на том же уровне что и бабблы, НЕ уезжает назад
+        consumer.vertex(matrix, x, localY + height, 0.0F).color(r, g, b, a).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x + width, localY + height, 0.0F).color(r, g, b, a).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x + width, localY, 0.0F).color(r, g, b, a).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x, localY, 0.0F).color(r, g, b, a).texture(0.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
 
         if (!canSend) return;
 
@@ -243,33 +250,10 @@ public final class TeamChatMessengerRenderer {
 
     private static void drawTexturedQuad(VertexConsumer consumer, Matrix4f matrix,
                                          float x1, float y1, float x2, float y2, int light) {
-        addTexturedVertex(consumer, matrix, x1, y2, 0.0F, 0.0F, 1.0F, light);
-        addTexturedVertex(consumer, matrix, x2, y2, 0.0F, 1.0F, 1.0F, light);
-        addTexturedVertex(consumer, matrix, x2, y1, 0.0F, 1.0F, 0.0F, light);
-        addTexturedVertex(consumer, matrix, x1, y1, 0.0F, 0.0F, 0.0F, light);
-    }
-
-    private static void addTexturedVertex(VertexConsumer consumer, Matrix4f matrix,
-                                          float x, float y, float z, float u, float v, int light) {
-        consumer.vertex(matrix, x, y, z)
-                .color(255, 255, 255, 255)
-                .texture(u, v)
-                .overlay(OverlayTexture.DEFAULT_UV)
-                .light(light)
-                .normal(0.0F, 0.0F, 1.0F)
-                .next();
-    }
-
-    private static void addColoredTexturedVertex(VertexConsumer consumer, Matrix4f matrix,
-                                                 float x, float y, float z, float u, float v,
-                                                 float r, float g, float b, float a) {
-        consumer.vertex(matrix, x, y, z)
-                .color(r, g, b, a)
-                .texture(u, v)
-                .overlay(OverlayTexture.DEFAULT_UV)
-                .light(FULL_BRIGHT_LIGHT)
-                .normal(0.0F, 0.0F, 1.0F)
-                .next();
+        consumer.vertex(matrix, x1, y2, 0.0F).color(255, 255, 255, 255).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x2, y2, 0.0F).color(255, 255, 255, 255).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x2, y1, 0.0F).color(255, 255, 255, 255).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x1, y1, 0.0F).color(255, 255, 255, 255).texture(0.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0.0F, 0.0F, 1.0F).next();
     }
 
     private static void drawScreenText(DrawContext context, TextRenderer textRenderer, int left, int y, RenderedMessage message) {
