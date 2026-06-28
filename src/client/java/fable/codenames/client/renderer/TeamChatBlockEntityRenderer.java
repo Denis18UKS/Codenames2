@@ -56,7 +56,7 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
 
     private static void drawPanel(MatrixStack matrices, VertexConsumerProvider vertexConsumers, String teamName) {
         String visibleTeam = teamName == null || teamName.isBlank() ? TeamChatClientState.getCurrentTeam() : teamName;
-        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEyes(TeamChatVisuals.backgroundTexture(visibleTeam)));
+        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucentEmissive(TeamChatVisuals.backgroundTexture(visibleTeam)));
         Matrix4f positionMatrix = matrices.peek().getPositionMatrix();
 
         addVertex(consumer, positionMatrix, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F);
