@@ -22,9 +22,11 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
     private static final float BASE_OFFSET_X = 8.0F / 16.0F;
     private static final float HEIGHT = 4.0F;
     private static final float WIDTH = 2.0F;
-    private static final float PANEL_Z = 0.0F;
-    private static final float INPUT_Z = 0.001F;
-    private static final float MESSAGES_Z = 0.002F;
+    // Возвращаем WALL_Z, но теперь всё рисуем на одном Z-слое с микро-смещениями
+    private static final float WALL_Z = -0.492F;
+    private static final float PANEL_Z_OFFSET = 0.0F;
+    private static final float INPUT_Z_OFFSET = 0.001F;
+    private static final float MESSAGES_Z_OFFSET = 0.002F;
     private static final int FULL_BRIGHT_LIGHT = LightmapTextureManager.MAX_LIGHT_COORDINATE;
 
     public TeamChatBlockEntityRenderer(BlockEntityRendererFactory.Context context) {
@@ -42,7 +44,7 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
         matrices.translate(0.5F, 0.0F, 0.5F);
         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(rotationFor(facing)));
         matrices.translate(BASE_OFFSET_X + entity.getBannerOffsetXPixels() / 16.0F, entity.getBannerOffsetYPixels() / 16.0F, 0.0F);
-        matrices.translate(-WIDTH / 2.0F, 0.0F, PANEL_Z);
+        matrices.translate(-WIDTH / 2.0F, 0.0F, WALL_Z);
 
         drawPanel(matrices, vertexConsumers, entity.getTeamName());
         drawInput(matrices, vertexConsumers, entity);
@@ -56,14 +58,16 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
         VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TeamChatVisuals.backgroundTexture(visibleTeam)));
         Matrix4f positionMatrix = matrices.peek().getPositionMatrix();
 
+        float z = PANEL_Z_OFFSET;
+
         // Левая нижняя
-        consumer.vertex(positionMatrix, 0.0F, 0.0F, 0.0F).color(255, 255, 255, 255).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(positionMatrix, 0.0F, 0.0F, z).color(255, 255, 255, 255).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
         // Правая нижняя
-        consumer.vertex(positionMatrix, WIDTH, 0.0F, 0.0F).color(255, 255, 255, 255).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(positionMatrix, WIDTH, 0.0F, z).color(255, 255, 255, 255).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
         // Правая верхняя
-        consumer.vertex(positionMatrix, WIDTH, HEIGHT, 0.0F).color(255, 255, 255, 255).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(positionMatrix, WIDTH, HEIGHT, z).color(255, 255, 255, 255).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
         // Левая верхняя
-        consumer.vertex(positionMatrix, 0.0F, HEIGHT, 0.0F).color(255, 255, 255, 255).texture(0.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(positionMatrix, 0.0F, HEIGHT, z).color(255, 255, 255, 255).texture(0.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
     }
 
     private static void drawMessages(MatrixStack matrices, VertexConsumerProvider vertexConsumers) {
@@ -74,7 +78,7 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
         }
 
         matrices.push();
-        matrices.translate(0.0F, HEIGHT, MESSAGES_Z);
+        matrices.translate(0.0F, HEIGHT, MESSAGES_Z_OFFSET);
         matrices.scale(WIDTH / TeamChatMessengerRenderer.PANEL_WIDTH, -HEIGHT / TeamChatMessengerRenderer.PANEL_HEIGHT, 1.0F);
 
         int firstVisible = TeamChatMessengerRenderer.firstVisibleIndexFromBottom(messages);
@@ -93,7 +97,7 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
     private static void drawInput(MatrixStack matrices, VertexConsumerProvider vertexConsumers, TeamChatBlockEntity entity) {
         TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
         matrices.push();
-        matrices.translate(0.0F, HEIGHT, INPUT_Z);
+        matrices.translate(0.0F, HEIGHT, INPUT_Z_OFFSET);
         matrices.scale(WIDTH / TeamChatMessengerRenderer.PANEL_WIDTH, -HEIGHT / TeamChatMessengerRenderer.PANEL_HEIGHT, 1.0F);
         boolean active = TeamChatClientState.isBannerInputActive(entity.getPos());
         List<TeamChatMessengerRenderer.RenderedMessage> messages = TeamChatMessengerRenderer.buildMessages(textRenderer, TeamChatClientState.getMessages());
