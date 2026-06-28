@@ -32,7 +32,7 @@ public final class TeamChatMessengerRenderer {
     private static final int LEFT_BUBBLE_RIGHT_PADDING = 4;
     private static final int RIGHT_BUBBLE_RIGHT_PADDING = 16;
     private static final int BUBBLE_GAP = 6;
-    private static final float WORLD_TEXT_Z_OFFSET = 0.002F;
+    private static final int FULL_BRIGHT_LIGHT = LightmapTextureManager.MAX_LIGHT_COORDINATE;
 
     private TeamChatMessengerRenderer() {
     }
@@ -147,7 +147,7 @@ public final class TeamChatMessengerRenderer {
     }
 
     public static void drawWorldBubble(MatrixStack matrices, VertexConsumerProvider vertexConsumers, TextRenderer textRenderer,
-                                       int y, RenderedMessage message, int light) {
+                                       int y, RenderedMessage message) {
         float progress = animationProgress(message.sentAtMillis());
         float scale = animationScale(progress);
 
@@ -159,7 +159,6 @@ public final class TeamChatMessengerRenderer {
         matrices.scale(scale, scale, 1.0F);
         matrices.translate(-(x + message.bubbleWidth() / 2.0F), -(worldY + message.bubbleHeight() / 2.0F), 0.0F);
         matrices.translate(0.0F, animationYOffset(progress), 0.0F);
-        int fullBright = LightmapTextureManager.MAX_LIGHT_COORDINATE;
         VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TeamChatVisuals.bubbleTexture(message.teamName(), message.own())));
         Matrix4f matrix = matrices.peek().getPositionMatrix();
         Matrix3f normalMatrix = matrices.peek().getNormalMatrix();
@@ -167,7 +166,7 @@ public final class TeamChatMessengerRenderer {
         drawTexturedQuad(consumer, matrix, normalMatrix,
                 x, worldY,
                 x + message.bubbleWidth(), worldY + message.bubbleHeight(),
-                fullBright);
+                FULL_BRIGHT_LIGHT);
 
         matrices.push();
         matrices.translate(0.0F, 0.0F, 0.01F);
@@ -185,16 +184,16 @@ public final class TeamChatMessengerRenderer {
                 false,
                 matrices.peek().getPositionMatrix(),
                 vertexConsumers,
-                TextRenderer.TextLayerType.POLYGON_OFFSET, // Изменено с NORMAL на POLYGON_OFFSET
+                TextRenderer.TextLayerType.NORMAL,
                 0,
-                fullBright // Изменено с 'light' на 'fullBright'
+                FULL_BRIGHT_LIGHT
         );
         matrices.pop();
         matrices.pop();
     }
     public static void drawWorldInput(MatrixStack matrices, VertexConsumerProvider vertexConsumers, TextRenderer textRenderer,
                                       List<RenderedMessage> messages,
-                                      String draft, boolean active, boolean canSend, int light) {
+                                      String draft, boolean active, boolean canSend) {
 
         int totalMessagesHeight = totalHeight(messages);
         int y = Math.max(CHAT_TOP, CHAT_BOTTOM - 6 - totalMessagesHeight);
@@ -205,22 +204,18 @@ public final class TeamChatMessengerRenderer {
         int height = 18;
         int color = active ? 0xEE050505 : 0xAA050505;
 
-        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(new Identifier("textures/misc/white.png")));
+        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getTextBackground());
         Matrix4f matrix = matrices.peek().getPositionMatrix();
-        Matrix3f normalMatrix = matrices.peek().getNormalMatrix();
 
         float a = ((color >> 24) & 255) / 255.0F;
         float r = ((color >> 16) & 255) / 255.0F;
         float g = ((color >> 8) & 255) / 255.0F;
         float b = (color & 255) / 255.0F;
 
-        int fullBright = LightmapTextureManager.MAX_LIGHT_COORDINATE;
-
-        // Рендерим поле ввода с полной яркостью
-        consumer.vertex(matrix, x, localY + height, -0.02F).color(r, g, b, a).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(fullBright).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x + width, localY + height, -0.02F).color(r, g, b, a).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(fullBright).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x + width, localY, -0.02F).color(r, g, b, a).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(fullBright).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x, localY, -0.02F).color(r, g, b, a).texture(0.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(fullBright).normal(normalMatrix, 0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x, localY + height, -0.02F).color(r, g, b, a).light(FULL_BRIGHT_LIGHT).next();
+        consumer.vertex(matrix, x + width, localY + height, -0.02F).color(r, g, b, a).light(FULL_BRIGHT_LIGHT).next();
+        consumer.vertex(matrix, x + width, localY, -0.02F).color(r, g, b, a).light(FULL_BRIGHT_LIGHT).next();
+        consumer.vertex(matrix, x, localY, -0.02F).color(r, g, b, a).light(FULL_BRIGHT_LIGHT).next();
 
         if (!canSend) return;
 
@@ -239,21 +234,31 @@ public final class TeamChatMessengerRenderer {
                 false,
                 matrices.peek().getPositionMatrix(),
                 vertexConsumers,
-                TextRenderer.TextLayerType.POLYGON_OFFSET, // Изменено с NORMAL на POLYGON_OFFSET
+                TextRenderer.TextLayerType.NORMAL,
                 0,
-                fullBright // Изменено с 'light' на 'fullBright'
+                FULL_BRIGHT_LIGHT
         );
         matrices.pop();
     }
 
 
-
-    private static void drawTexturedQuad(VertexConsumer consumer, Matrix4f matrix, Matrix3f normal,
+    private static void drawTexturedQuad(VertexConsumer consumer, Matrix4f matrix, Matrix3f normalMatrix,
                                          float x1, float y1, float x2, float y2, int light) {
-        consumer.vertex(matrix, x1, y2, 0.0F).color(255, 255, 255, 255).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normal, 0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x2, y2, 0.0F).color(255, 255, 255, 255).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normal, 0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x2, y1, 0.0F).color(255, 255, 255, 255).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normal, 0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x1, y1, 0.0F).color(255, 255, 255, 255).texture(0.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normal, 0.0F, 0.0F, 1.0F).next();
+        addTexturedVertex(consumer, matrix, normalMatrix, x1, y2, 0.0F, 0.0F, 1.0F, light);
+        addTexturedVertex(consumer, matrix, normalMatrix, x2, y2, 0.0F, 1.0F, 1.0F, light);
+        addTexturedVertex(consumer, matrix, normalMatrix, x2, y1, 0.0F, 1.0F, 0.0F, light);
+        addTexturedVertex(consumer, matrix, normalMatrix, x1, y1, 0.0F, 0.0F, 0.0F, light);
+    }
+
+    private static void addTexturedVertex(VertexConsumer consumer, Matrix4f matrix, Matrix3f normalMatrix,
+                                          float x, float y, float z, float u, float v, int light) {
+        consumer.vertex(matrix, x, y, z)
+                .color(255, 255, 255, 255)
+                .texture(u, v)
+                .overlay(OverlayTexture.DEFAULT_UV)
+                .light(light)
+                .normal(normalMatrix, 0.0F, 0.0F, 1.0F)
+                .next();
     }
 
     private static void drawScreenText(DrawContext context, TextRenderer textRenderer, int left, int y, RenderedMessage message) {
