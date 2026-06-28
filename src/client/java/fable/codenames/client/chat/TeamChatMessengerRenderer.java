@@ -159,7 +159,7 @@ public final class TeamChatMessengerRenderer {
         matrices.scale(scale, scale, 1.0F);
         matrices.translate(-(x + message.bubbleWidth() / 2.0F), -(worldY + message.bubbleHeight() / 2.0F), 0.0F);
         matrices.translate(0.0F, animationYOffset(progress), 0.0F);
-        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucentEmissive(TeamChatVisuals.bubbleTexture(message.teamName(), message.own())));
+        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TeamChatVisuals.bubbleTexture(message.teamName(), message.own())));
         Matrix4f matrix = matrices.peek().getPositionMatrix();
 
         drawTexturedQuad(consumer, matrix,
