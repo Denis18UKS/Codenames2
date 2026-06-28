@@ -32,6 +32,7 @@ public final class TeamChatMessengerRenderer {
     private static final int RIGHT_BUBBLE_RIGHT_PADDING = 16;
     private static final int BUBBLE_GAP = 6;
     private static final int FULL_BRIGHT_LIGHT = LightmapTextureManager.MAX_LIGHT_COORDINATE;
+    private static final Identifier WHITE_TEXTURE = new Identifier("textures/misc/white.png");
 
     private TeamChatMessengerRenderer() {
     }
@@ -158,7 +159,7 @@ public final class TeamChatMessengerRenderer {
         matrices.scale(scale, scale, 1.0F);
         matrices.translate(-(x + message.bubbleWidth() / 2.0F), -(worldY + message.bubbleHeight() / 2.0F), 0.0F);
         matrices.translate(0.0F, animationYOffset(progress), 0.0F);
-        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TeamChatVisuals.bubbleTexture(message.teamName(), message.own())));
+        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEyes(TeamChatVisuals.bubbleTexture(message.teamName(), message.own())));
         Matrix4f matrix = matrices.peek().getPositionMatrix();
 
         drawTexturedQuad(consumer, matrix,
@@ -202,7 +203,7 @@ public final class TeamChatMessengerRenderer {
         int height = 18;
         int color = active ? 0xEE050505 : 0xAA050505;
 
-        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getTextBackground());
+        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(WHITE_TEXTURE));
         Matrix4f matrix = matrices.peek().getPositionMatrix();
 
         float a = ((color >> 24) & 255) / 255.0F;
@@ -210,10 +211,10 @@ public final class TeamChatMessengerRenderer {
         float g = ((color >> 8) & 255) / 255.0F;
         float b = (color & 255) / 255.0F;
 
-        consumer.vertex(matrix, x, localY + height, -0.02F).color(r, g, b, a).light(FULL_BRIGHT_LIGHT).next();
-        consumer.vertex(matrix, x + width, localY + height, -0.02F).color(r, g, b, a).light(FULL_BRIGHT_LIGHT).next();
-        consumer.vertex(matrix, x + width, localY, -0.02F).color(r, g, b, a).light(FULL_BRIGHT_LIGHT).next();
-        consumer.vertex(matrix, x, localY, -0.02F).color(r, g, b, a).light(FULL_BRIGHT_LIGHT).next();
+        addColoredTexturedVertex(consumer, matrix, x, localY + height, -0.02F, 0.0F, 1.0F, r, g, b, a);
+        addColoredTexturedVertex(consumer, matrix, x + width, localY + height, -0.02F, 1.0F, 1.0F, r, g, b, a);
+        addColoredTexturedVertex(consumer, matrix, x + width, localY, -0.02F, 1.0F, 0.0F, r, g, b, a);
+        addColoredTexturedVertex(consumer, matrix, x, localY, -0.02F, 0.0F, 0.0F, r, g, b, a);
 
         if (!canSend) return;
 
@@ -255,6 +256,18 @@ public final class TeamChatMessengerRenderer {
                 .texture(u, v)
                 .overlay(OverlayTexture.DEFAULT_UV)
                 .light(light)
+                .normal(0.0F, 0.0F, 1.0F)
+                .next();
+    }
+
+    private static void addColoredTexturedVertex(VertexConsumer consumer, Matrix4f matrix,
+                                                 float x, float y, float z, float u, float v,
+                                                 float r, float g, float b, float a) {
+        consumer.vertex(matrix, x, y, z)
+                .color(r, g, b, a)
+                .texture(u, v)
+                .overlay(OverlayTexture.DEFAULT_UV)
+                .light(FULL_BRIGHT_LIGHT)
                 .normal(0.0F, 0.0F, 1.0F)
                 .next();
     }
