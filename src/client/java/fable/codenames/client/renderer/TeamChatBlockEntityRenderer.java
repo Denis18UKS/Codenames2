@@ -9,6 +9,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.render.LightmapTextureManager;
+import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
@@ -55,13 +56,13 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
 
     private static void drawPanel(MatrixStack matrices, VertexConsumerProvider vertexConsumers, String teamName) {
         String visibleTeam = teamName == null || teamName.isBlank() ? TeamChatClientState.getCurrentTeam() : teamName;
-        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getText(TeamChatVisuals.backgroundTexture(visibleTeam)));
+        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TeamChatVisuals.backgroundTexture(visibleTeam)));
         Matrix4f positionMatrix = matrices.peek().getPositionMatrix();
 
-        addVertex(consumer, positionMatrix, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F);
-        addVertex(consumer, positionMatrix, WIDTH, 0.0F, 0.0F, 1.0F, 1.0F);
-        addVertex(consumer, positionMatrix, WIDTH, HEIGHT, 0.0F, 1.0F, 0.0F);
-        addVertex(consumer, positionMatrix, 0.0F, HEIGHT, 0.0F, 0.0F, 0.0F);
+        addVertex(consumer, positionMatrix, normalMatrix, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F);
+        addVertex(consumer, positionMatrix, normalMatrix, WIDTH, 0.0F, 0.0F, 1.0F, 1.0F);
+        addVertex(consumer, positionMatrix, normalMatrix, WIDTH, HEIGHT, 0.0F, 1.0F, 0.0F);
+        addVertex(consumer, positionMatrix, normalMatrix, 0.0F, HEIGHT, 0.0F, 0.0F, 0.0F);
     }
 
     private static void drawMessages(MatrixStack matrices, VertexConsumerProvider vertexConsumers) {
@@ -116,12 +117,14 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
         };
     }
 
-    private static void addVertex(VertexConsumer consumer, Matrix4f positionMatrix,
+    private static void addVertex(VertexConsumer consumer, Matrix4f positionMatrix, Matrix3f normalMatrix,
                                   float x, float y, float z, float u, float v) {
         consumer.vertex(positionMatrix, x, y, z)
                 .color(255, 255, 255, 255)
                 .texture(u, v)
+                .overlay(OverlayTexture.DEFAULT_UV)
                 .light(FULL_BRIGHT_LIGHT)
+                .normal(normalMatrix, 0.0F, 0.0F, 1.0F)
                 .next();
     }
 }

@@ -158,7 +158,7 @@ public final class TeamChatMessengerRenderer {
         matrices.scale(scale, scale, 1.0F);
         matrices.translate(-(x + message.bubbleWidth() / 2.0F), -(worldY + message.bubbleHeight() / 2.0F), 0.0F);
         matrices.translate(0.0F, animationYOffset(progress), 0.0F);
-        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getText(TeamChatVisuals.bubbleTexture(message.teamName(), message.own())));
+        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TeamChatVisuals.bubbleTexture(message.teamName(), message.own())));
         Matrix4f matrix = matrices.peek().getPositionMatrix();
 
         drawTexturedQuad(consumer, matrix,
@@ -202,7 +202,7 @@ public final class TeamChatMessengerRenderer {
         int height = 18;
         int color = active ? 0xEE050505 : 0xAA050505;
 
-        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getText(new Identifier("textures/misc/white.png")));
+        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getTextBackground());
         Matrix4f matrix = matrices.peek().getPositionMatrix();
 
         float a = ((color >> 24) & 255) / 255.0F;
@@ -210,10 +210,10 @@ public final class TeamChatMessengerRenderer {
         float g = ((color >> 8) & 255) / 255.0F;
         float b = (color & 255) / 255.0F;
 
-        consumer.vertex(matrix, x, localY + height, -0.02F).color(r, g, b, a).texture(0.0F, 1.0F).light(FULL_BRIGHT_LIGHT).next();
-        consumer.vertex(matrix, x + width, localY + height, -0.02F).color(r, g, b, a).texture(1.0F, 1.0F).light(FULL_BRIGHT_LIGHT).next();
-        consumer.vertex(matrix, x + width, localY, -0.02F).color(r, g, b, a).texture(1.0F, 0.0F).light(FULL_BRIGHT_LIGHT).next();
-        consumer.vertex(matrix, x, localY, -0.02F).color(r, g, b, a).texture(0.0F, 0.0F).light(FULL_BRIGHT_LIGHT).next();
+        consumer.vertex(matrix, x, localY + height, -0.02F).color(r, g, b, a).light(FULL_BRIGHT_LIGHT).next();
+        consumer.vertex(matrix, x + width, localY + height, -0.02F).color(r, g, b, a).light(FULL_BRIGHT_LIGHT).next();
+        consumer.vertex(matrix, x + width, localY, -0.02F).color(r, g, b, a).light(FULL_BRIGHT_LIGHT).next();
+        consumer.vertex(matrix, x, localY, -0.02F).color(r, g, b, a).light(FULL_BRIGHT_LIGHT).next();
 
         if (!canSend) return;
 
@@ -240,12 +240,23 @@ public final class TeamChatMessengerRenderer {
     }
 
 
-    private static void drawTexturedQuad(VertexConsumer consumer, Matrix4f matrix,
+    private static void drawTexturedQuad(VertexConsumer consumer, Matrix4f matrix, Matrix3f normalMatrix,
                                          float x1, float y1, float x2, float y2, int light) {
-        consumer.vertex(matrix, x1, y2, 0.0F).color(255, 255, 255, 255).texture(0.0F, 1.0F).light(light).next();
-        consumer.vertex(matrix, x2, y2, 0.0F).color(255, 255, 255, 255).texture(1.0F, 1.0F).light(light).next();
-        consumer.vertex(matrix, x2, y1, 0.0F).color(255, 255, 255, 255).texture(1.0F, 0.0F).light(light).next();
-        consumer.vertex(matrix, x1, y1, 0.0F).color(255, 255, 255, 255).texture(0.0F, 0.0F).light(light).next();
+        addTexturedVertex(consumer, matrix, normalMatrix, x1, y2, 0.0F, 0.0F, 1.0F, light);
+        addTexturedVertex(consumer, matrix, normalMatrix, x2, y2, 0.0F, 1.0F, 1.0F, light);
+        addTexturedVertex(consumer, matrix, normalMatrix, x2, y1, 0.0F, 1.0F, 0.0F, light);
+        addTexturedVertex(consumer, matrix, normalMatrix, x1, y1, 0.0F, 0.0F, 0.0F, light);
+    }
+
+    private static void addTexturedVertex(VertexConsumer consumer, Matrix4f matrix, Matrix3f normalMatrix,
+                                          float x, float y, float z, float u, float v, int light) {
+        consumer.vertex(matrix, x, y, z)
+                .color(255, 255, 255, 255)
+                .texture(u, v)
+                .overlay(OverlayTexture.DEFAULT_UV)
+                .light(light)
+                .normal(normalMatrix, 0.0F, 0.0F, 1.0F)
+                .next();
     }
 
     private static void drawScreenText(DrawContext context, TextRenderer textRenderer, int left, int y, RenderedMessage message) {
