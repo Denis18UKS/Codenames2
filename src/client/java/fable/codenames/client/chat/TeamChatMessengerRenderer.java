@@ -8,7 +8,6 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
-import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
 import java.util.ArrayList;
@@ -161,9 +160,8 @@ public final class TeamChatMessengerRenderer {
         matrices.translate(0.0F, animationYOffset(progress), 0.0F);
         VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TeamChatVisuals.bubbleTexture(message.teamName(), message.own())));
         Matrix4f matrix = matrices.peek().getPositionMatrix();
-        Matrix3f normalMatrix = matrices.peek().getNormalMatrix();
 
-        drawTexturedQuad(consumer, matrix, normalMatrix,
+        drawTexturedQuad(consumer, matrix,
                 x, worldY,
                 x + message.bubbleWidth(), worldY + message.bubbleHeight(),
                 FULL_BRIGHT_LIGHT);

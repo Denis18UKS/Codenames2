@@ -18,7 +18,6 @@ import net.minecraft.client.render.block.entity.BlockEntityRendererFactory;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.RotationAxis;
-import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
 import java.util.List;
@@ -59,7 +58,6 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
         String visibleTeam = teamName == null || teamName.isBlank() ? TeamChatClientState.getCurrentTeam() : teamName;
         VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TeamChatVisuals.backgroundTexture(visibleTeam)));
         Matrix4f positionMatrix = matrices.peek().getPositionMatrix();
-        Matrix3f normalMatrix = matrices.peek().getNormalMatrix();
 
         addVertex(consumer, positionMatrix, normalMatrix, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F);
         addVertex(consumer, positionMatrix, normalMatrix, WIDTH, 0.0F, 0.0F, 1.0F, 1.0F);
