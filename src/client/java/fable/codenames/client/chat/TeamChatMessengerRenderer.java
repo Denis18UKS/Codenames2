@@ -240,22 +240,22 @@ public final class TeamChatMessengerRenderer {
     }
 
 
-    private static void drawTexturedQuad(VertexConsumer consumer, Matrix4f matrix, Matrix3f normalMatrix,
+    private static void drawTexturedQuad(VertexConsumer consumer, Matrix4f matrix,
                                          float x1, float y1, float x2, float y2, int light) {
-        addTexturedVertex(consumer, matrix, normalMatrix, x1, y2, 0.0F, 0.0F, 1.0F, light);
-        addTexturedVertex(consumer, matrix, normalMatrix, x2, y2, 0.0F, 1.0F, 1.0F, light);
-        addTexturedVertex(consumer, matrix, normalMatrix, x2, y1, 0.0F, 1.0F, 0.0F, light);
-        addTexturedVertex(consumer, matrix, normalMatrix, x1, y1, 0.0F, 0.0F, 0.0F, light);
+        addTexturedVertex(consumer, matrix, x1, y2, 0.0F, 0.0F, 1.0F, light);
+        addTexturedVertex(consumer, matrix, x2, y2, 0.0F, 1.0F, 1.0F, light);
+        addTexturedVertex(consumer, matrix, x2, y1, 0.0F, 1.0F, 0.0F, light);
+        addTexturedVertex(consumer, matrix, x1, y1, 0.0F, 0.0F, 0.0F, light);
     }
 
-    private static void addTexturedVertex(VertexConsumer consumer, Matrix4f matrix, Matrix3f normalMatrix,
+    private static void addTexturedVertex(VertexConsumer consumer, Matrix4f matrix,
                                           float x, float y, float z, float u, float v, int light) {
         consumer.vertex(matrix, x, y, z)
                 .color(255, 255, 255, 255)
                 .texture(u, v)
                 .overlay(OverlayTexture.DEFAULT_UV)
                 .light(light)
-                .normal(normalMatrix, 0.0F, 0.0F, 1.0F)
+                .normal(0.0F, 0.0F, 1.0F)
                 .next();
     }
 
