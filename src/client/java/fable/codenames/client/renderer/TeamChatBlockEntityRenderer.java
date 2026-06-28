@@ -23,8 +23,8 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
     private static final float HEIGHT = 4.0F;
     private static final float WIDTH = 2.0F;
     private static final float PANEL_Z = 0.0F;
-    private static final float MESSAGES_Z = 0.001F;
-    private static final float INPUT_Z = 0.002F;
+    private static final float INPUT_Z = 0.001F;
+    private static final float MESSAGES_Z = 0.002F;
     private static final int FULL_BRIGHT_LIGHT = LightmapTextureManager.MAX_LIGHT_COORDINATE;
 
     public TeamChatBlockEntityRenderer(BlockEntityRendererFactory.Context context) {
@@ -45,8 +45,8 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
         matrices.translate(-WIDTH / 2.0F, 0.0F, PANEL_Z);
 
         drawPanel(matrices, vertexConsumers, entity.getTeamName());
-        drawMessages(matrices, vertexConsumers);
         drawInput(matrices, vertexConsumers, entity);
+        drawMessages(matrices, vertexConsumers);
 
         matrices.pop();
     }

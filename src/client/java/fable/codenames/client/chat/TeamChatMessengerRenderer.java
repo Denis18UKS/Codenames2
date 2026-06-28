@@ -41,16 +41,19 @@ public final class TeamChatMessengerRenderer {
         List<RenderedMessage> rendered = new ArrayList<>();
         for (TeamChatMessage message : messages) {
             boolean own = TeamChatClientState.isOwnMessage(message);
-            rendered.add(buildMessage(textRenderer, message.content(), message.teamName(), own, message.sentAtMillis()));
+            rendered.add(
+                    buildMessage(textRenderer, message.content(), message.teamName(), own, message.sentAtMillis()));
         }
         return rendered;
     }
 
-    public static RenderedMessage buildPreviewMessage(TextRenderer textRenderer, String content, String teamName, boolean own) {
+    public static RenderedMessage buildPreviewMessage(TextRenderer textRenderer, String content, String teamName,
+            boolean own) {
         return buildMessage(textRenderer, content, teamName, own, System.currentTimeMillis() - 1000L);
     }
 
-    private static RenderedMessage buildMessage(TextRenderer textRenderer, String content, String teamName, boolean own, long sentAtMillis) {
+    private static RenderedMessage buildMessage(TextRenderer textRenderer, String content, String teamName, boolean own,
+            long sentAtMillis) {
         Text lineText = styled(content);
         int textWidth = textRenderer.getWidth(lineText);
         float textScale = textScale(textWidth, own);
@@ -89,7 +92,8 @@ public final class TeamChatMessengerRenderer {
 
     private static int bubbleWidth(int textWidth, float textScale, boolean own) {
         int scaledTextWidth = (int) Math.ceil(textWidth * textScale);
-        return Math.min(BUBBLE_MAX_WIDTH, Math.max(BUBBLE_MIN_WIDTH, scaledTextWidth + TeamChatTextLayout.textX(own) + textRightPadding(own)));
+        return Math.min(BUBBLE_MAX_WIDTH,
+                Math.max(BUBBLE_MIN_WIDTH, scaledTextWidth + TeamChatTextLayout.textX(own) + textRightPadding(own)));
     }
 
     private static int textRightPadding(boolean own) {
@@ -120,7 +124,8 @@ public final class TeamChatMessengerRenderer {
         return 0;
     }
 
-    public static void drawScreenBubble(DrawContext context, TextRenderer textRenderer, int panelX, int y, RenderedMessage message) {
+    public static void drawScreenBubble(DrawContext context, TextRenderer textRenderer, int panelX, int y,
+            RenderedMessage message) {
         float progress = animationProgress(message.sentAtMillis());
         float scale = animationScale(progress);
         int left = panelX + message.x();
@@ -146,8 +151,9 @@ public final class TeamChatMessengerRenderer {
         context.getMatrices().pop();
     }
 
-    public static void drawWorldBubble(MatrixStack matrices, VertexConsumerProvider vertexConsumers, TextRenderer textRenderer,
-                                       int y, RenderedMessage message) {
+    public static void drawWorldBubble(MatrixStack matrices, VertexConsumerProvider vertexConsumers,
+            TextRenderer textRenderer,
+            int y, RenderedMessage message) {
         float progress = animationProgress(message.sentAtMillis());
         float scale = animationScale(progress);
 
@@ -159,7 +165,8 @@ public final class TeamChatMessengerRenderer {
         matrices.scale(scale, scale, 1.0F);
         matrices.translate(-(x + message.bubbleWidth() / 2.0F), -(worldY + message.bubbleHeight() / 2.0F), 0.0F);
         matrices.translate(0.0F, animationYOffset(progress), 0.0F);
-        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TeamChatVisuals.bubbleTexture(message.teamName(), message.own())));
+        VertexConsumer consumer = vertexConsumers.getBuffer(
+                RenderLayer.getEntityTranslucent(TeamChatVisuals.bubbleTexture(message.teamName(), message.own())));
         Matrix4f matrix = matrices.peek().getPositionMatrix();
 
         drawTexturedQuad(consumer, matrix,
@@ -185,15 +192,15 @@ public final class TeamChatMessengerRenderer {
                 vertexConsumers,
                 TextRenderer.TextLayerType.NORMAL,
                 0,
-                FULL_BRIGHT_LIGHT
-        );
+                FULL_BRIGHT_LIGHT);
         matrices.pop();
         matrices.pop();
     }
 
-    public static void drawWorldInput(MatrixStack matrices, VertexConsumerProvider vertexConsumers, TextRenderer textRenderer,
-                                      List<RenderedMessage> messages,
-                                      String draft, boolean active, boolean canSend) {
+    public static void drawWorldInput(MatrixStack matrices, VertexConsumerProvider vertexConsumers,
+            TextRenderer textRenderer,
+            List<RenderedMessage> messages,
+            String draft, boolean active, boolean canSend) {
 
         int totalMessagesHeight = totalHeight(messages);
         int y = Math.max(CHAT_TOP, CHAT_BOTTOM - 6 - totalMessagesHeight);
@@ -203,7 +210,8 @@ public final class TeamChatMessengerRenderer {
         int width = PANEL_WIDTH - 24;
         int height = 18;
 
-        if (!active && (draft == null || draft.isEmpty())) {
+        // Убрал ранний выход — инпут должен рисоваться всегда, если canSend
+        if (!canSend) {
             return;
         }
 
@@ -217,13 +225,15 @@ public final class TeamChatMessengerRenderer {
         float g = ((color >> 8) & 255) / 255.0F;
         float b = (color & 255) / 255.0F;
 
-        // Z = 0.0F — на том же уровне что и бабблы, НЕ уезжает назад
-        consumer.vertex(matrix, x, localY + height, 0.0F).color(r, g, b, a).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x + width, localY + height, 0.0F).color(r, g, b, a).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x + width, localY, 0.0F).color(r, g, b, a).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x, localY, 0.0F).color(r, g, b, a).texture(0.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
-
-        if (!canSend) return;
+        // Всегда рисуем фон инпута
+        consumer.vertex(matrix, x, localY + height, 0.0F).color(r, g, b, a).texture(0.0F, 1.0F)
+                .overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x + width, localY + height, 0.0F).color(r, g, b, a).texture(1.0F, 1.0F)
+                .overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x + width, localY, 0.0F).color(r, g, b, a).texture(1.0F, 0.0F)
+                .overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x, localY, 0.0F).color(r, g, b, a).texture(0.0F, 0.0F)
+                .overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
 
         String text = draft == null ? "" : draft;
         if (active && (System.currentTimeMillis() / 500L) % 2L == 0L) {
@@ -242,21 +252,24 @@ public final class TeamChatMessengerRenderer {
                 vertexConsumers,
                 TextRenderer.TextLayerType.NORMAL,
                 0,
-                FULL_BRIGHT_LIGHT
-        );
+                FULL_BRIGHT_LIGHT);
         matrices.pop();
     }
 
-
     private static void drawTexturedQuad(VertexConsumer consumer, Matrix4f matrix,
-                                         float x1, float y1, float x2, float y2, int light) {
-        consumer.vertex(matrix, x1, y2, 0.0F).color(255, 255, 255, 255).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x2, y2, 0.0F).color(255, 255, 255, 255).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x2, y1, 0.0F).color(255, 255, 255, 255).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0.0F, 0.0F, 1.0F).next();
-        consumer.vertex(matrix, x1, y1, 0.0F).color(255, 255, 255, 255).texture(0.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0.0F, 0.0F, 1.0F).next();
+            float x1, float y1, float x2, float y2, int light) {
+        consumer.vertex(matrix, x1, y2, 0.0F).color(255, 255, 255, 255).texture(0.0F, 1.0F)
+                .overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x2, y2, 0.0F).color(255, 255, 255, 255).texture(1.0F, 1.0F)
+                .overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x2, y1, 0.0F).color(255, 255, 255, 255).texture(1.0F, 0.0F)
+                .overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(matrix, x1, y1, 0.0F).color(255, 255, 255, 255).texture(0.0F, 0.0F)
+                .overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0.0F, 0.0F, 1.0F).next();
     }
 
-    private static void drawScreenText(DrawContext context, TextRenderer textRenderer, int left, int y, RenderedMessage message) {
+    private static void drawScreenText(DrawContext context, TextRenderer textRenderer, int left, int y,
+            RenderedMessage message) {
         int textX = left + centeredTextX(textRenderer, message);
         int textY = y + TeamChatTextLayout.textY();
         context.getMatrices().push();
@@ -305,7 +318,8 @@ public final class TeamChatMessengerRenderer {
         return (1.0F - progress) * 12.0F;
     }
 
-    public record RenderedMessage(Text lineText, int x, int bubbleWidth, int bubbleHeight, float textScale, boolean own, String teamName, long sentAtMillis) {
+    public record RenderedMessage(Text lineText, int x, int bubbleWidth, int bubbleHeight, float textScale, boolean own,
+            String teamName, long sentAtMillis) {
         public int height() {
             return this.bubbleHeight + BUBBLE_GAP;
         }
