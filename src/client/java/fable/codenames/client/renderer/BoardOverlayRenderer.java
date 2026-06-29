@@ -405,7 +405,7 @@ public final class BoardOverlayRenderer {
         boolean sameX = field.stream().mapToInt(BlockPos::getX).distinct().count() == 1;
         boolean sameZ = field.stream().mapToInt(BlockPos::getZ).distinct().count() == 1;
         double inset = 0.12;
-        double faceOffset = 0.30;
+        double faceOffset = 0.25;
         double worldBadgeHeight = height * BADGE_SCALE;
         double x = pos.getX() + 1.0 - inset;
         double y = pos.getY() + inset + worldBadgeHeight;
