@@ -18,7 +18,6 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.RotationAxis;
-import net.minecraft.block.BlockState;
 import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
 
@@ -31,6 +30,7 @@ public final class BoardOverlayRenderer {
     private static final RenderLayer OVERLAY_LINES = RenderLayer.getLines();
     private static final RenderLayer OVERLAY_QUADS = RenderLayer.getLightning();
     private static final RenderLayer TEXT_SEE_THROUGH = RenderLayer.getTextSeeThrough(new Identifier("codenames", "text/see_through"));
+    private static final RenderLayer TEXT_NORMAL = RenderLayer.getText(new Identifier("codenames", "text/normal"));
 
     private BoardOverlayRenderer() {
     }
@@ -130,28 +130,77 @@ public final class BoardOverlayRenderer {
         if (showVotes) {
             matrices.push();
 
+            boolean hasSeeThrough = false;
+            boolean hasNormal = false;
+
             for (BoardClientState.VoteIndicator indicator : voteIndicators) {
-                if (canPlayerSeeVoteIndicator(player, indicator)) {
-                    drawVoteBadge(client, context, matrices, consumers, cameraPos, indicator);
+                if (!isIndicatorFromPlayerTeam(player, indicator)) {
+                    continue;
                 }
+
+                boolean seeThrough = shouldRenderSeeThrough(player, indicator);
+
+                if (seeThrough) {
+                    hasSeeThrough = true;
+                } else {
+                    hasNormal = true;
+                }
+
+                drawVoteBadge(client, context, matrices, consumers, cameraPos, indicator, seeThrough);
             }
 
             matrices.pop();
 
-            consumers.draw(RenderLayer.getTextBackgroundSeeThrough());
-            consumers.draw(TEXT_SEE_THROUGH);
+            if (hasNormal) {
+                consumers.draw(RenderLayer.getTextBackground());
+                consumers.draw(TEXT_NORMAL);
+            }
+            if (hasSeeThrough) {
+                consumers.draw(RenderLayer.getTextBackgroundSeeThrough());
+                consumers.draw(TEXT_SEE_THROUGH);
+            }
         }
 
         consumers.draw();
     }
 
-    private static boolean canPlayerSeeVoteIndicator(PlayerEntity player, BoardClientState.VoteIndicator indicator) {
+    /**
+     * Проверяет, принадлежит ли индикатор команде игрока.
+     */
+    private static boolean isIndicatorFromPlayerTeam(PlayerEntity player, BoardClientState.VoteIndicator indicator) {
         AbstractTeam playerTeam = player.getScoreboardTeam();
         if (playerTeam == null) {
             return false;
         }
 
+        String playerTeamName = playerTeam.getName().toLowerCase(Locale.ROOT);
+        String indicatorTeamName = indicator.teamName().toLowerCase(Locale.ROOT);
+
+        boolean playerIsRed = playerTeamName.contains("red") || playerTeamName.contains("крас");
+        boolean playerIsBlue = playerTeamName.contains("blue") || playerTeamName.contains("син");
+        boolean indicatorIsRed = indicatorTeamName.contains("red") || indicatorTeamName.contains("крас");
+        boolean indicatorIsBlue = indicatorTeamName.contains("blue") || indicatorTeamName.contains("син");
+
+        if (playerIsRed && indicatorIsRed) return true;
+        if (playerIsBlue && indicatorIsBlue) return true;
+
+        return playerTeamName.equals(indicatorTeamName);
+    }
+
+    /**
+     * Определяет, должен ли индикатор рендериться в режиме SEE_THROUGH.
+     * Отгадывающие видят SEE_THROUGH для своей команды.
+     * Лидеры не видят SEE_THROUGH.
+     */
+    private static boolean shouldRenderSeeThrough(PlayerEntity player, BoardClientState.VoteIndicator indicator) {
+        // Лидеры не видят SEE_THROUGH
         if (isPlayerLeader(player)) {
+            return false;
+        }
+
+        // Отгадывающие видят SEE_THROUGH для своей команды
+        AbstractTeam playerTeam = player.getScoreboardTeam();
+        if (playerTeam == null) {
             return false;
         }
 
@@ -304,7 +353,6 @@ public final class BoardOverlayRenderer {
         c.vertex(m, x2, y2, z2).color(r, g, b, a).next();
     }
 
-
     private static boolean isConfigurator(ItemStack stack) {
         return !stack.isEmpty() && stack.isOf(ModItems.BOARD_CONFIGURATOR.getItem());
     }
@@ -322,7 +370,7 @@ public final class BoardOverlayRenderer {
 
     private static void drawVoteBadge(MinecraftClient client, WorldRenderContext context, MatrixStack matrices,
                                       VertexConsumerProvider.Immediate vertexConsumers, Vec3d cameraPos,
-                                      BoardClientState.VoteIndicator indicator) {
+                                      BoardClientState.VoteIndicator indicator, boolean seeThrough) {
         TextRenderer textRenderer = client.textRenderer;
         String text = voteText(indicator.count());
         int width = Math.max(14, textRenderer.getWidth(text) + 6);
@@ -335,16 +383,20 @@ public final class BoardOverlayRenderer {
         matrices.multiply(context.camera().getRotation());
         matrices.scale(-BADGE_SCALE, -BADGE_SCALE, BADGE_SCALE);
 
-        drawBackground(matrices, vertexConsumers, width, height, teamColor(indicator.teamName()), true);
+        drawBackground(matrices, vertexConsumers, width, height, teamColor(indicator.teamName()), seeThrough);
 
         matrices.translate(0.0F, 0.0F, -0.8F);
         int textX = (width - textRenderer.getWidth(text)) / 2;
         int textY = (height - 8) / 2;
 
+        TextRenderer.TextLayerType layerType = seeThrough
+                ? TextRenderer.TextLayerType.SEE_THROUGH
+                : TextRenderer.TextLayerType.NORMAL;
+
         textRenderer.draw(text, textX + 1, textY + 1, 0xEE000000, false, matrices.peek().getPositionMatrix(),
-                vertexConsumers, TextRenderer.TextLayerType.SEE_THROUGH, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+                vertexConsumers, layerType, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
         textRenderer.draw(text, textX, textY, 0xFFFFFFFF, false, matrices.peek().getPositionMatrix(), vertexConsumers,
-                TextRenderer.TextLayerType.SEE_THROUGH, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
+                layerType, 0, LightmapTextureManager.MAX_LIGHT_COORDINATE);
 
         matrices.pop();
     }
@@ -353,11 +405,11 @@ public final class BoardOverlayRenderer {
         boolean sameX = field.stream().mapToInt(BlockPos::getX).distinct().count() == 1;
         boolean sameZ = field.stream().mapToInt(BlockPos::getZ).distinct().count() == 1;
         double inset = 0.12;
-        double faceOffset = 0.12;
+        double faceOffset = 0.30;
         double worldBadgeHeight = height * BADGE_SCALE;
         double x = pos.getX() + 1.0 - inset;
         double y = pos.getY() + inset + worldBadgeHeight;
-        double z = pos.getZ() + 1.0 - inset;
+        double z = pos.getZ() + 1.0 + faceOffset;
 
         if (sameX) {
             boolean eastSide = cameraPos.x >= pos.getX() + 0.5;
