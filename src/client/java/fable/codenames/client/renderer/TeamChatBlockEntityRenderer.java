@@ -22,7 +22,6 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
     private static final float BASE_OFFSET_X = 8.0F / 16.0F;
     private static final float HEIGHT = 4.0F;
     private static final float WIDTH = 2.0F;
-    // Возвращаем WALL_Z, но теперь всё рисуем на одном Z-слое с микро-смещениями
     private static final float WALL_Z = -0.492F;
     private static final float PANEL_Z_OFFSET = 0.0F;
     private static final float INPUT_Z_OFFSET = 0.001F;
@@ -55,19 +54,43 @@ public class TeamChatBlockEntityRenderer implements BlockEntityRenderer<TeamChat
 
     private static void drawPanel(MatrixStack matrices, VertexConsumerProvider vertexConsumers, String teamName) {
         String visibleTeam = teamName == null || teamName.isBlank() ? TeamChatClientState.getCurrentTeam() : teamName;
-        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TeamChatVisuals.backgroundTexture(visibleTeam)));
+        VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEntityCutout(TeamChatVisuals.backgroundTexture(visibleTeam)));
         Matrix4f positionMatrix = matrices.peek().getPositionMatrix();
 
         float z = PANEL_Z_OFFSET;
 
         // Левая нижняя
-        consumer.vertex(positionMatrix, 0.0F, 0.0F, z).color(255, 255, 255, 255).texture(0.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(positionMatrix, 0.0F, 0.0F, z)
+                .color(255, 255, 255, 255)
+                .texture(0.0F, 1.0F)
+                .overlay(OverlayTexture.DEFAULT_UV)
+                .light(FULL_BRIGHT_LIGHT)
+                .normal(0.0F, 0.0F, 1.0F)
+                .next();
         // Правая нижняя
-        consumer.vertex(positionMatrix, WIDTH, 0.0F, z).color(255, 255, 255, 255).texture(1.0F, 1.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(positionMatrix, WIDTH, 0.0F, z)
+                .color(255, 255, 255, 255)
+                .texture(1.0F, 1.0F)
+                .overlay(OverlayTexture.DEFAULT_UV)
+                .light(FULL_BRIGHT_LIGHT)
+                .normal(0.0F, 0.0F, 1.0F)
+                .next();
         // Правая верхняя
-        consumer.vertex(positionMatrix, WIDTH, HEIGHT, z).color(255, 255, 255, 255).texture(1.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(positionMatrix, WIDTH, HEIGHT, z)
+                .color(255, 255, 255, 255)
+                .texture(1.0F, 0.0F)
+                .overlay(OverlayTexture.DEFAULT_UV)
+                .light(FULL_BRIGHT_LIGHT)
+                .normal(0.0F, 0.0F, 1.0F)
+                .next();
         // Левая верхняя
-        consumer.vertex(positionMatrix, 0.0F, HEIGHT, z).color(255, 255, 255, 255).texture(0.0F, 0.0F).overlay(OverlayTexture.DEFAULT_UV).light(FULL_BRIGHT_LIGHT).normal(0.0F, 0.0F, 1.0F).next();
+        consumer.vertex(positionMatrix, 0.0F, HEIGHT, z)
+                .color(255, 255, 255, 255)
+                .texture(0.0F, 0.0F)
+                .overlay(OverlayTexture.DEFAULT_UV)
+                .light(FULL_BRIGHT_LIGHT)
+                .normal(0.0F, 0.0F, 1.0F)
+                .next();
     }
 
     private static void drawMessages(MatrixStack matrices, VertexConsumerProvider vertexConsumers) {
